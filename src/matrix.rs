@@ -1,60 +1,69 @@
 use std::{
+    convert::identity,
     fmt::Debug,
-    ops::{Add, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub}, hash::Hash,
+    hash::Hash,
+    iter::Sum,
+    ops::{Add, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub},
 };
 
 use num_traits::{Float, One, Zero};
 
 use crate::{
     float_ext::FloatExt,
-    const_assert::{ConstAssert, IsTrue},
     init_array,
-    vector_alias::Vector, quaternion::Quaternion, vector,
+    quaternion::Quaternion,
+    vector,
+    vector_alias::Vector,
 };
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct Matrix<T: Copy, const ROWS: usize, const COLUMNS: usize> {
+/// A matrix
+pub struct Matrix<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> {
     rows: [Row<T, COLUMNS>; ROWS],
 }
 
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub struct Row<T: Copy, const COLUMNS: usize> {
+/// A row of a matrix
+pub struct Row<T: Copy + Zero + One, const COLUMNS: usize> {
     data: [T; COLUMNS],
 }
 
-impl<T: Copy, const COLUMNS: usize> Row<T, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> Row<T, COLUMNS> {
+    /// Creates a new row using the given values.
     pub const fn from_components(components: [T; COLUMNS]) -> Self {
-        Self {
-            data: components,
-        }
+        Self { data: components }
     }
 
+    /// Returns a reference to the `column`th column of this row.
     pub const fn as_column(&self, column: usize) -> Option<&T> {
         self.data.get(column)
     }
 
+    /// Returns a mutable reference to the `column`th column of this row.
     pub const fn as_column_mut(&mut self, column: usize) -> Option<&mut T> {
         self.data.get_mut(column)
     }
 
+    /// Returns a copy of the `column`th column of this row.
     pub fn column(&self, column: usize) -> Option<T> {
         self.data.get(column).cloned()
     }
 
+    /// Returns a copy of the `column`th column of this row.
     pub const fn const_column(&self, column: usize) -> T {
         *self.data.get(column).expect("Invalid column")
     }
 }
 
-impl<T: Copy + Debug, const COLUMNS: usize> Debug for Row<T, COLUMNS> {
+impl<T: Copy + Zero + One + Debug, const COLUMNS: usize> Debug for Row<T, COLUMNS> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.data.fmt(f)
     }
 }
 
-impl<T: Copy, const COLUMNS: usize> Index<usize> for Row<T, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> Index<usize> for Row<T, COLUMNS> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -63,52 +72,58 @@ impl<T: Copy, const COLUMNS: usize> Index<usize> for Row<T, COLUMNS> {
     }
 }
 
-impl<T: Copy, const COLUMNS: usize> IndexMut<usize> for Row<T, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> IndexMut<usize> for Row<T, COLUMNS> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.as_column_mut(index)
             .unwrap_or_else(|| panic!("No column {} in matrix", index))
     }
 }
 
-impl<T: Copy, const COLUMNS: usize> From<[T; COLUMNS]> for Row<T, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> From<[T; COLUMNS]> for Row<T, COLUMNS> {
     fn from(v: [T; COLUMNS]) -> Self {
         Self::from_components(v)
     }
 }
 
-impl<T: Copy, const COLUMNS: usize> Into<[T; COLUMNS]> for Row<T, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> Into<[T; COLUMNS]> for Row<T, COLUMNS> {
     fn into(self) -> [T; COLUMNS] {
         self.data
     }
 }
 
 /// Iterator over a matrix's components
-pub struct MatrixIter<'a, T: Copy, const ROWS: usize, const COLUMNS: usize> {
+pub struct MatrixIter<'a, T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> {
     matrix: &'a Matrix<T, ROWS, COLUMNS>,
     n: usize,
 }
 
-impl<'a, T: Copy, const ROWS: usize, const COLUMNS: usize> MatrixIter<'a, T, ROWS, COLUMNS> {
+impl<'a, T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize>
+    MatrixIter<'a, T, ROWS, COLUMNS>
+{
+    /// Creates a new iterator over the given matrix.
     fn new(matrix: &'a Matrix<T, ROWS, COLUMNS>) -> Self {
-        Self {
-            matrix,
-            n: 0,
-        }
+        Self { matrix, n: 0 }
     }
 }
 
-impl<'a, T: Copy, const ROWS: usize, const COLUMNS: usize> Iterator for MatrixIter<'a, T, ROWS, COLUMNS> {
+impl<'a, T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Iterator
+    for MatrixIter<'a, T, ROWS, COLUMNS>
+{
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = self.matrix.rows.get(self.n / COLUMNS)?.column(self.n % COLUMNS);
+        let next = self
+            .matrix
+            .rows
+            .get(self.n / COLUMNS)?
+            .column(self.n % COLUMNS);
         self.n += 1;
         next
     }
 }
 
 // Matrices and vectors
-impl<T: Copy, const ROWS: usize, const COLUMNS: usize> Matrix<T, ROWS, COLUMNS> {
+impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, ROWS, COLUMNS> {
     /// Create a new matrix
     pub const fn new(rows: [[T; COLUMNS]; ROWS]) -> Self {
         Self {
@@ -140,10 +155,7 @@ impl<T: Copy, const ROWS: usize, const COLUMNS: usize> Matrix<T, ROWS, COLUMNS> 
     }
 
     /// Create an identity matrix
-    pub fn identity() -> Self
-    where
-        T: Zero + One,
-    {
+    pub fn identity() -> Self {
         Self {
             rows: init_array!([Row<T, COLUMNS>; ROWS], (T::zero(), T::one()), const Self::__identity_init_fn),
         }
@@ -164,9 +176,9 @@ impl<T: Copy, const ROWS: usize, const COLUMNS: usize> Matrix<T, ROWS, COLUMNS> 
 
     const fn __identity_init_fn2(column_idx: usize, row_idx: usize, zero: T, one: T) -> T {
         if column_idx == row_idx {
-            zero
-        } else {
             one
+        } else {
+            zero
         }
     }
 
@@ -237,13 +249,73 @@ impl<T: Copy, const ROWS: usize, const COLUMNS: usize> Matrix<T, ROWS, COLUMNS> 
     pub fn iter<'a>(&'a self) -> MatrixIter<'a, T, ROWS, COLUMNS> {
         MatrixIter::new(self)
     }
+
+    /// Concatenate one transformation matrix to another.
+    /// The left hand matrix must have equal or greater columns to the right hand matrix's rows
+    pub fn and_then<const OTHER_ROWS: usize, const OTHER_COLUMNS: usize>(
+        &self,
+        other: &Matrix<T, OTHER_ROWS, OTHER_COLUMNS>,
+    ) -> Self
+    where
+        T: Sum + Mul<Output = T>,
+    {
+        if COLUMNS < OTHER_ROWS {
+            panic!("Matrix::and_then: left hand matrix must have equal or greater columns to the right hand matrix's rows");
+        } else {
+            Self {
+                rows: init_array!([Row<T, COLUMNS>; ROWS], |row_idx| {
+                    Row {
+                        data: init_array!([T; COLUMNS], |column_idx| {
+                            (0..OTHER_ROWS)
+                                .map(|i| {
+                                    identity::<&Row<T, COLUMNS>>(&self.rows[row_idx])
+                                        .const_column(i)
+                                        * identity::<&Row<T, OTHER_COLUMNS>>(&other.rows[i])
+                                            .const_column(column_idx)
+                                })
+                                .sum()
+                        }),
+                    }
+                }),
+            }
+        }
+    }
+
+    pub const fn as_size<const NEW_ROWS: usize, const NEW_COLUMNS: usize>(
+        &self,
+        filler: T,
+    ) -> Matrix<T, NEW_ROWS, NEW_COLUMNS> {
+        Matrix {
+            rows: init_array!([Row<T, NEW_COLUMNS>; NEW_ROWS], (self, filler), const Self::__as_size_init_fn::<NEW_COLUMNS>),
+        }
+    }
+
+    pub const fn __as_size_init_fn<const NEW_COLUMNS: usize>(
+        row_idx: usize,
+        this: &Self,
+        filler: T,
+    ) -> Row<T, NEW_COLUMNS> {
+        Row {
+            data: init_array!([T; NEW_COLUMNS], (row_idx, this, filler), const Self::__as_size_init_fn2),
+        }
+    }
+
+    pub const fn __as_size_init_fn2(
+        column_idx: usize,
+        row_idx: usize,
+        this: &Self,
+        filler: T,
+    ) -> T {
+        if row_idx < ROWS && column_idx < COLUMNS {
+            this.rows[row_idx].const_column(column_idx)
+        } else {
+            filler
+        }
+    }
 }
 
-// Matrices only
-impl<T: Copy, const ROWS: usize, const COLUMNS: usize> Matrix<T, ROWS, COLUMNS>
-where
-    ConstAssert<{ ROWS > 1 }>: IsTrue,
-{
+// All matrices & vectors
+impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, ROWS, COLUMNS> {
     /// Get an immutable reference to a row in the matrix
     pub const fn as_row(&self, n: usize) -> Option<&Row<T, COLUMNS>> {
         self.rows.get(n)
@@ -260,27 +332,347 @@ where
             rows: [*self.as_row(n).expect("Invalid row")],
         }
     }
+
+    /// Create a rotation matrix with the Z axis facing in the 'forward' direction and the Y axis facing in the 'up' direction
+    /// If the 'forward' and 'up' vectors are not orthogonal, the matrix will be orthogonalized along the 'up' direction
+    pub fn from_forward_up(forward: &Vector<T, 3>, up: &Vector<T, 3>) -> Self
+    where
+        T: Mul<Output = T> + Sub<Output = T> + Neg<Output = T>,
+    {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 3 {
+                panic!("Matrix must have at least 3 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        let mut matrix = Self::identity();
+        let right = Vector::derive_right(forward, up);
+        let forward = Vector::derive_forward(&right, up);
+        // Set X row
+        let row = matrix.as_row_mut(0).unwrap();
+        row.data[0] = right.x();
+        row.data[1] = right.y();
+        row.data[2] = right.z();
+        // Set Y row
+        let row = matrix.as_row_mut(1).unwrap();
+        row.data[0] = up.x();
+        row.data[1] = up.y();
+        row.data[2] = up.z();
+        // Set Z row
+        let row = matrix.as_row_mut(2).unwrap();
+        row.data[0] = -forward.x();
+        row.data[1] = -forward.y();
+        row.data[2] = -forward.z();
+        // Return the matrix
+        matrix
+    }
+
+    /// Set the scale component of a transformation matrix
+    pub fn set_scale(&mut self, scale: &Vector<T, 3>) {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 3 {
+                panic!("Matrix must have at least 3 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        self.rows[0].data[0] = scale.x();
+        self.rows[1].data[1] = scale.y();
+        self.rows[2].data[2] = scale.z();
+    }
+
+    /// Returns the component part of a transformation matrix
+    pub const fn scale(&self) -> Vector<T, 3> {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 3 {
+                panic!("Matrix must have at least 3 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        Vector::from_components([
+            self.rows[0].const_column(0),
+            self.rows[1].const_column(1),
+            self.rows[2].const_column(2),
+        ])
+    }
+
+    pub fn new_scale(scale: &Vector<T, 3>) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 3 {
+                panic!("Matrix must have at least 3 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        let mut matrix = Self::identity();
+        matrix.set_scale(scale);
+        matrix
+    }
+
+    /// Get the X axis component of a transformation matrix
+    pub fn x_axis(&self) -> Vector<T, 3> {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 1 {
+                panic!("Matrix must have at least 1 row");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        Vector::from_components(self.row(0).as_slice()[0..2].try_into().unwrap())
+    }
+
+    /// Set the X axis component of a transformation matrix
+    /// Note: This will not be orthogonalized
+    pub fn set_x_axis(&mut self, x_axis: &Vector<T, 3>) {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 1 {
+                panic!("Matrix must have at least 1 row");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        self.rows[0].data[0] = x_axis.x();
+        self.rows[0].data[1] = x_axis.y();
+        self.rows[0].data[2] = x_axis.z();
+    }
+
+    /// Get the Y axis component of a transformation matrix
+    pub fn y_axis(&self) -> Vector<T, 3> {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 2 {
+                panic!("Matrix must have at least 2 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        Vector::from_components(self.row(1).as_slice()[0..2].try_into().unwrap())
+    }
+
+    /// Set the Y axis component of a transformation matrix
+    /// Note: This will not be orthogonalized
+    pub fn set_y_axis(&mut self, y_axis: &Vector<T, 3>) {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 2 {
+                panic!("Matrix must have at least 2 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        self.rows[1].data[0] = y_axis.x();
+        self.rows[1].data[1] = y_axis.y();
+        self.rows[1].data[2] = y_axis.z();
+    }
+
+    /// Get the Z axis component of a transformation matrix
+    pub fn z_axis(&self) -> Vector<T, 3> {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 3 {
+                panic!("Matrix must have at least 3 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        Vector::from_components(self.row(2).as_slice()[0..2].try_into().unwrap())
+    }
+
+    /// Set the Z axis component of a transformation matrix
+    /// Note: This will not be orthogonalized
+    pub fn set_z_axis(&mut self, z_axis: &Vector<T, 3>) {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 3 {
+                panic!("Matrix must have at least 3 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        self.rows[2].data[0] = z_axis.x();
+        self.rows[2].data[1] = z_axis.y();
+        self.rows[2].data[2] = z_axis.z();
+    }
+
+    /// Sets the translation component of a transformation matrix
+    pub fn set_translation(&mut self, translation: &Vector<T, 3>) {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 1 {
+                panic!("Matrix must have at least 1 row");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        self.rows[ROWS - 1].data[0] = translation.x();
+        self.rows[ROWS - 1].data[1] = translation.y();
+        self.rows[ROWS - 1].data[2] = translation.z();
+    }
+
+    /// Returns the translation component of a transformation matrix
+    pub fn translation(self) -> Vector<T, 3> {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 1 {
+                panic!("Matrix must have at least 1 row");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        Vector::from_components(self.row(ROWS - 1).as_slice()[0..2].try_into().unwrap())
+    }
+
+    /// Creates a transformation matrix that applies the given translation
+    pub fn new_translation(translation: &Vector<T, 3>) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 1 {
+                panic!("Matrix must have at least 1 row");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        let mut matrix = Self::identity();
+        let translation_row = matrix.as_row_mut(ROWS - 1).unwrap();
+        translation_row.data[0] = translation.x();
+        translation_row.data[1] = translation.y();
+        translation_row.data[2] = translation.z();
+        matrix
+    }
+}
+
+// 4x4 matrices only
+impl<T: Copy + Float> Matrix<T, 4, 4> {
+    /// Creates a perspective projection matrix
+    pub fn new_projection_perspective(fov: T, aspect_ratio: T, near: T, far: T) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            if fov <= T::zero() || fov >= T::from(std::f64::consts::PI).unwrap() {
+                panic!("Invalid field of view");
+            }
+            if aspect_ratio <= T::zero() {
+                panic!("Invalid aspect ratio");
+            }
+            if near <= T::zero() || near >= far {
+                panic!("Invalid near/far planes");
+            }
+        }
+        let y_scale = T::one() / (fov * T::half()).tan();
+        let x_scale = y_scale / aspect_ratio;
+        let z_scale = far / (near - far);
+        let mut matrix = Self::new_scale(&vector!(x_scale, y_scale, z_scale));
+        matrix.as_row_mut(2).unwrap().data[3] = -T::one();
+        matrix.as_row_mut(3).unwrap().data[2] = near * z_scale;
+        matrix
+    }
+
+    /// Creates an orthographic projection matrix
+    pub fn new_projection_orthographic(size: Vector<T, 2>, near: T, far: T) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            if size.x() <= T::zero() || size.y() <= T::zero() {
+                panic!("Invalid size");
+            }
+            if near <= T::zero() || near >= far {
+                panic!("Invalid near/far planes");
+            }
+        }
+        let x_scale = T::two() / size.x();
+        let y_scale = T::two() / size.y();
+        let z_range = near - far;
+        let z_scale = T::one() / z_range;
+        let mut matrix = Self::new_scale(&vector!(x_scale, y_scale, z_scale));
+        matrix.as_row_mut(3).unwrap().data[2] = near / z_range;
+        matrix
+    }
+
+    /// Creates a view matrix
+    pub fn new_view(position: &Vector<T, 3>, target: &Vector<T, 3>, up: &Vector<T, 3>) -> Self
+    where
+        T: Sum + 'static,
+    {
+        #[cfg(debug_assertions)]
+        {
+            if (target - position).length() < T::epsilon() {
+                panic!("Target and position are equal or too close");
+            }
+            if up.length() < T::epsilon() {
+                panic!("Up vector is too close to zero");
+            }
+        }
+        let mut matrix = Self::identity();
+        // Calculate axes
+        let z = (position - target).normalized();
+        let x = up.cross(&z).normalized();
+        let y = z.cross(&x);
+        // Set X row
+        let row = matrix.as_row_mut(0).unwrap();
+        row.data[0] = x.x();
+        row.data[1] = y.x();
+        row.data[2] = z.x();
+        // Set Y row
+        let row = matrix.as_row_mut(1).unwrap();
+        row.data[0] = x.y();
+        row.data[1] = y.y();
+        row.data[2] = z.y();
+        // Set Z row
+        let row = matrix.as_row_mut(2).unwrap();
+        row.data[0] = x.z();
+        row.data[1] = y.z();
+        row.data[2] = z.z();
+        // Set translation row
+        let row = matrix.as_row_mut(3).unwrap();
+        row.data[0] = -position.dot(&x);
+        row.data[1] = -position.dot(&y);
+        row.data[2] = -position.dot(&z);
+        // Return the matrix
+        matrix
+    }
 }
 
 // Vectors only
-impl<T: Copy, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
+    /// Create a vector whose components are T::one()
     pub fn one() -> Self
-        where T: Float
+    where
+        T: Float,
     {
         Self::from_scalar(T::one())
     }
 
+    /// Create a vector whose components are T::zero()
     pub fn zero() -> Self
-        where T: Float
+    where
+        T: Float,
     {
-        Self::from_scalar(T::one())
+        Self::from_scalar(T::zero())
     }
 
+    /// Create a vector from the given values
     pub const fn from_components(components: [T; COLUMNS]) -> Self {
         Self {
-            rows: [
-                Row::from_components(components)
-            ]
+            rows: [Row::from_components(components)],
         }
     }
 
@@ -294,6 +686,7 @@ impl<T: Copy, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         self.rows[0].as_column_mut(n)
     }
 
+    /// Create a new vector from this vector's components
     pub const fn swizzle<const NEW_COLUMNS: usize>(
         &self,
         swizzle: &[usize; NEW_COLUMNS],
@@ -318,7 +711,7 @@ impl<T: Copy, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
     /// Normalize the vector
     pub fn normalized(&self) -> Self
     where
-        T: Float + Mul<Output = T> + std::iter::Sum,
+        T: Float + Mul<Output = T> + std::iter::Sum + 'static,
     {
         self / self.length()
     }
@@ -336,6 +729,12 @@ impl<T: Copy, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
     where
         T: Mul<Output = T> + std::iter::Sum,
     {
+        #[cfg(debug_assertions)]
+        {
+            if COLUMNS < 1 {
+                panic!("Vector must have at least 1 component");
+            }
+        }
         (&self.rows[0]).data.iter().map(|n| *n * *n).sum::<T>()
     }
 
@@ -355,7 +754,7 @@ impl<T: Copy, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
     /// Calculate the cross product of two vectors
     pub fn cross(&self, other: &Self) -> Self
     where
-        T: Mul<Output = T> + Sub<Output = T> + Zero + One,
+        T: Mul<Output = T> + Sub<Output = T>,
     {
         Self {
             rows: [Row {
@@ -371,68 +770,156 @@ impl<T: Copy, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
 
     /// Get the X component of the vector
     pub const fn x(&self) -> T {
-        *self.rows[0].data.get(0).expect("Vector does not have an X component")
+        *self.rows[0]
+            .data
+            .get(0)
+            .expect("Vector does not have an X component")
     }
 
     /// Get the Y component of the vector
     pub const fn y(&self) -> T {
-        *self.rows[0].data.get(1).expect("Vector does not have a Y component")
+        *self.rows[0]
+            .data
+            .get(1)
+            .expect("Vector does not have a Y component")
     }
 
     /// Get the Z component of the vector
     pub const fn z(&self) -> T {
-        *self.rows[0].data.get(2).expect("Vector does not have a Z component")
+        *self.rows[0]
+            .data
+            .get(2)
+            .expect("Vector does not have a Z component")
     }
 
     /// Get the W component of the vector
     pub const fn w(&self) -> T {
-        *self.rows[0].data.get(3).expect("Vector does not have a W component")
+        *self.rows[0]
+            .data
+            .get(3)
+            .expect("Vector does not have a W component")
+    }
+
+    /// Concatenate two vectors
+    pub const fn concat<const EXTRA_COMPONENTS: usize>(
+        &self,
+        other: &Vector<T, EXTRA_COMPONENTS>,
+    ) -> Vector<T, { COLUMNS + EXTRA_COMPONENTS }> {
+        Vector::from_components(
+            init_array!([T; COLUMNS + EXTRA_COMPONENTS], (self, other), const Self::__concat_init_fn),
+        )
+    }
+
+    const fn __concat_init_fn<const EXTRA_COMPONENTS: usize>(
+        column_idx: usize,
+        this: &Self,
+        other: &Vector<T, EXTRA_COMPONENTS>,
+    ) -> T {
+        if column_idx < EXTRA_COMPONENTS {
+            *this.component(column_idx).unwrap()
+        } else {
+            *other.component(column_idx - EXTRA_COMPONENTS).unwrap()
+        }
+    }
+
+    /// Get the vector's components as a slice
+    pub const fn as_slice(&self) -> &[T] {
+        &self.rows[0].data
+    }
+
+    /// Get the vector's components as a reference to an array
+    pub const fn as_array(&self) -> &[T; COLUMNS] {
+        &self.rows[0].data
+    }
+
+    /// Use a 'right' and 'up' vector to calculate the 'forward' vector
+    pub fn derive_forward(right: &Self, up: &Self) -> Self
+    where
+        T: Mul<Output = T> + Sub<Output = T>,
+    {
+        up.cross(right)
+    }
+
+    /// Use a 'forward' and 'up' vector to calculate the 'right' vector
+    pub fn derive_right(forward: &Self, up: &Self) -> Self
+    where
+        T: Mul<Output = T> + Sub<Output = T>,
+    {
+        forward.cross(up)
+    }
+
+    /// Use a 'forward' and 'right' vector to calculate the 'up' vector
+    pub fn derive_up(forward: &Self, right: &Self) -> Self
+    where
+        T: Mul<Output = T> + Sub<Output = T>,
+    {
+        right.cross(forward)
+    }
+
+    /// Create a vector with its X component set to 1 and all other components set to 0
+    pub fn unit_x() -> Self {
+        if COLUMNS == 0 {
+            panic!("Vector cannot have an X component");
+        }
+        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 0 {
+            T::one()
+        } else {
+            T::zero()
+        })])
+    }
+
+    /// Create a vector with its Y component set to 1 and all other components set to 0
+    pub fn unit_y() -> Self {
+        if COLUMNS < 2 {
+            panic!("Vector cannot have a Y component");
+        }
+        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 1 {
+            T::one()
+        } else {
+            T::zero()
+        })])
+    }
+
+    /// Create a vector with its Y component set to 1 and all other components set to 0
+    pub fn unit_z() -> Self {
+        if COLUMNS < 3 {
+            panic!("Vector cannot have a Z component");
+        }
+        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 1 {
+            T::one()
+        } else {
+            T::zero()
+        })])
+    }
+
+    /// Create a vector with its Y component set to 1 and all other components set to 0
+    pub fn unit_w() -> Self {
+        if COLUMNS < 4 {
+            panic!("Vector cannot have a Z component");
+        }
+        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 1 {
+            T::one()
+        } else {
+            T::zero()
+        })])
     }
 }
 
-impl<T: Copy, const COLUMNS: usize> From<[T; COLUMNS]> for Matrix<T, 1, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> From<[T; COLUMNS]> for Matrix<T, 1, COLUMNS> {
     fn from(v: [T; COLUMNS]) -> Self {
         Self::from_components(v)
     }
 }
 
-impl<T: Copy, const COLUMNS: usize> Into<[T; COLUMNS]> for Matrix<T, 1, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> Into<[T; COLUMNS]> for Matrix<T, 1, COLUMNS> {
     fn into(self) -> [T; COLUMNS] {
         self.rows[0].into()
     }
 }
 
-impl<T: Copy + Default, const COLUMNS: usize> Default for Matrix<T, 1, COLUMNS> {
+impl<T: Copy + Zero + One + Default, const COLUMNS: usize> Default for Matrix<T, 1, COLUMNS> {
     fn default() -> Self {
         Self::from_scalar(T::default())
-    }
-}
-
-impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS>
-    where ConstAssert<{COLUMNS > 1}>: IsTrue,
-{
-    pub fn unit_x() -> Self {
-        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 0 { T::one() } else { T::zero() })])
-    }
-
-    pub fn unit_y() -> Self {
-        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 1 { T::one() } else { T::zero() })])
-    }
-}
-
-impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS>
-    where ConstAssert<{COLUMNS > 2}>: IsTrue,
-{
-    pub fn unit_z() -> Self {
-        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 2 { T::one() } else { T::zero() })])
-    }
-}
-
-impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS>
-    where ConstAssert<{COLUMNS > 3}>: IsTrue,
-{
-    pub fn unit_w() -> Self {
-        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 3 { T::one() } else { T::zero() })])
     }
 }
 
@@ -463,7 +950,7 @@ macro_rules! swizzles2 {
     ($(($($letter:ident),*)),*$(,)?) => {
         paste::paste! {
             $(
-                impl<T: Copy> Matrix<T, 1, 2> {
+                impl<T: Copy + Zero + One> Matrix<T, 1, 2> {
                     pub const fn [<$($letter)*>](&self) -> Vector<T, {swizzle_count!($($letter),*)}> {
                         self.swizzle(&[$(swizzle_idx!($letter)),*])
                     }
@@ -476,12 +963,12 @@ macro_rules! swizzles3 {
     ($(($($letter:ident),*)),*$(,)?) => {
         paste::paste! {
             $(
-                impl<T: Copy> Matrix<T, 1, 4> {
+                impl<T: Copy + Zero + One> Matrix<T, 1, 4> {
                     pub const fn [<$($letter)*>](&self) -> Vector<T, {swizzle_count!($($letter),*)}> {
                         self.swizzle(&[$(swizzle_idx!($letter)),*])
                     }
                 }
-                impl<T: Copy> Matrix<T, 1, 3> {
+                impl<T: Copy + Zero + One> Matrix<T, 1, 3> {
                     pub const fn [<$($letter)*>](&self) -> Vector<T, {swizzle_count!($($letter),*)}> {
                         self.swizzle(&[$(swizzle_idx!($letter)),*])
                     }
@@ -597,9 +1084,9 @@ swizzles3! {
 
 // Math operations
 macro_rules! impl_op_bi {
-    ($trait:ident, $fn:ident, where $t_ty:path: $bounds:path, $($code:tt)+) => {
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait for Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+    ($trait:ident, $fn:ident, $((where $t_ty:path: $($bounds:path)+))+, $($code:tt)+) => {
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait for Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Self;
 
@@ -609,8 +1096,8 @@ macro_rules! impl_op_bi {
             }
         }
 
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait<&Self> for Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait<&Self> for Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Self;
 
@@ -620,8 +1107,8 @@ macro_rules! impl_op_bi {
             }
         }
 
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait for &Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait for &Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Matrix<T, ROWS, COLUMNS>;
 
@@ -631,8 +1118,8 @@ macro_rules! impl_op_bi {
             }
         }
 
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait<&Self> for &Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait<&Self> for &Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Matrix<T, ROWS, COLUMNS>;
 
@@ -646,9 +1133,9 @@ macro_rules! impl_op_bi {
 
 // Math operations
 macro_rules! impl_op_bi_scalar {
-    ($trait:ident, $fn:ident, where $t_ty:path: $bounds:path, $($code:tt)+) => {
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait<T> for Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+    ($trait:ident, $fn:ident, $((where $t_ty:path: $($bounds:path)+))+, $($code:tt)+) => {
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait<T> for Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Self;
 
@@ -658,8 +1145,8 @@ macro_rules! impl_op_bi_scalar {
             }
         }
 
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait<&T> for Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait<&T> for Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Self;
 
@@ -669,8 +1156,8 @@ macro_rules! impl_op_bi_scalar {
             }
         }
 
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait<T> for &Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait<T> for &Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Matrix<T, ROWS, COLUMNS>;
 
@@ -680,8 +1167,8 @@ macro_rules! impl_op_bi_scalar {
             }
         }
 
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait<&T> for &Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait<&T> for &Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Matrix<T, ROWS, COLUMNS>;
 
@@ -694,9 +1181,9 @@ macro_rules! impl_op_bi_scalar {
 }
 
 macro_rules! impl_op_un {
-    ($trait:ident, $fn:ident, where $t_ty:path: $bounds:path, $($code:tt)+) => {
-        impl<T: Copy, const ROWS: usize, const COLUMNS: usize> $trait for Matrix<T, ROWS, COLUMNS>
-            where $t_ty: $bounds
+    ($trait:ident, $fn:ident, $((where $t_ty:path: $($bounds:path)+))+, $($code:tt)+) => {
+        impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> $trait for Matrix<T, ROWS, COLUMNS>
+            where$($t_ty: std::any::Any$(+$bounds)+),+
         {
             type Output = Self;
 
@@ -711,7 +1198,7 @@ macro_rules! impl_op_un {
 impl_op_bi! {
     Add,
     add,
-    where T: Add<Output = T>,
+    (where T: Add<Output = T>),
     |a, b| {
         a.zip(&b, |a, b| *a + *b)
     }
@@ -720,30 +1207,16 @@ impl_op_bi! {
 impl_op_bi! {
     Sub,
     sub,
-    where T: Sub<Output = T>,
+    (where T: Sub<Output = T>),
     |a, b| {
         a.zip(&b, |a, b| *a - *b)
     }
 }
 
 impl_op_bi! {
-    Mul,
-    mul,
-    where T: Mul<Output = T>,
-    |a, b| {
-        if ROWS < 2 {
-            a.zip(&b, |a, b| *a * *b)
-        }
-        else {
-            b.and_then(a)
-        }
-    }
-}
-
-impl_op_bi! {
     Div,
     div,
-    where T: Div<Output = T>,
+    (where T: Div<Output = T>),
     |a, b| {
         a.zip(&b, |a, b| *a / *b)
     }
@@ -752,7 +1225,7 @@ impl_op_bi! {
 impl_op_bi! {
     Rem,
     rem,
-    where T: Rem<Output = T>,
+    (where T: Rem<Output = T>),
     |a, b| {
         a.zip(&b, |a, b| *a % *b)
     }
@@ -761,7 +1234,7 @@ impl_op_bi! {
 impl_op_un! {
     Neg,
     neg,
-    where T: Neg<Output = T>,
+    (where T: Neg<Output = T>),
     |a| {
         a.map(|a| -*a)
     }
@@ -770,7 +1243,7 @@ impl_op_un! {
 impl_op_un! {
     Not,
     not,
-    where T: Not<Output = T>,
+    (where T: Not<Output = T>),
     |a| {
         a.map(|a| !*a)
     }
@@ -779,7 +1252,7 @@ impl_op_un! {
 impl_op_bi_scalar! {
     Add,
     add,
-    where T: Add<Output = T>,
+    (where T: Add<Output = T>),
     |a, b| {
         a.map(|a| *a + *b)
     }
@@ -788,7 +1261,7 @@ impl_op_bi_scalar! {
 impl_op_bi_scalar! {
     Sub,
     sub,
-    where T: Sub<Output = T>,
+    (where T: Sub<Output = T>),
     |a, b| {
         a.map(|a| *a - *b)
     }
@@ -797,7 +1270,7 @@ impl_op_bi_scalar! {
 impl_op_bi_scalar! {
     Mul,
     mul,
-    where T: Mul<Output = T>,
+    (where T: Mul<Output = T>),
     |a, b| {
         a.map(|a| *a * *b)
     }
@@ -806,7 +1279,7 @@ impl_op_bi_scalar! {
 impl_op_bi_scalar! {
     Div,
     div,
-    where T: Div<Output = T>,
+    (where T: Div<Output = T>),
     |a, b| {
         a.map(|a| *a / *b)
     }
@@ -815,25 +1288,160 @@ impl_op_bi_scalar! {
 impl_op_bi_scalar! {
     Rem,
     rem,
-    where T: Rem<Output = T>,
+    (where T: Rem<Output = T>),
     |a, b| {
         a.map(|a| *a % *b)
     }
 }
 
-impl<T: Copy + PartialEq, const ROWS: usize, const COLUMNS: usize> PartialEq for Matrix<T, ROWS, COLUMNS> {
+impl<T: Copy + Zero + One + PartialEq, const ROWS: usize, const COLUMNS: usize> PartialEq
+    for Matrix<T, ROWS, COLUMNS>
+{
     fn eq(&self, other: &Self) -> bool {
         self.iter().eq(other.iter())
     }
 }
 
-impl<T: Copy + PartialEq + Eq, const ROWS: usize, const COLUMNS: usize> Eq for Matrix<T, ROWS, COLUMNS> {}
+impl<T: Copy + Zero + One + PartialEq + Eq, const ROWS: usize, const COLUMNS: usize> Eq
+    for Matrix<T, ROWS, COLUMNS>
+{
+}
 
-impl<T: Copy + Hash, const ROWS: usize, const COLUMNS: usize> Hash for Matrix<T, ROWS, COLUMNS> {
+impl<T: Copy + Zero + One + Hash, const ROWS: usize, const COLUMNS: usize> Hash
+    for Matrix<T, ROWS, COLUMNS>
+{
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         for component in self.iter() {
             component.hash(state);
         }
+    }
+}
+
+impl<
+        T: Copy + Zero + One,
+        const ROWS: usize,
+        const COLUMNS: usize,
+        const OTHER_ROWS: usize,
+        const OTHER_COLUMNS: usize,
+    > Mul<Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for Matrix<T, ROWS, COLUMNS>
+where
+    T: Sum + Mul<Output = T>,
+{
+    type Output = Matrix<T, OTHER_ROWS, OTHER_COLUMNS>;
+    fn mul(self, rhs: Matrix<T, OTHER_ROWS, OTHER_COLUMNS>) -> Self::Output {
+        if ROWS == 1 && OTHER_ROWS == 1 {
+            self.as_size(T::one()).zip(&rhs, |a, b| *a * *b)
+        } else if OTHER_COLUMNS < ROWS {
+            panic!("Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}", ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS);
+        } else {
+            rhs.and_then(&self)
+        }
+    }
+}
+
+impl<
+        T: Copy + Zero + One,
+        const ROWS: usize,
+        const COLUMNS: usize,
+        const OTHER_ROWS: usize,
+        const OTHER_COLUMNS: usize,
+    > Mul<Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for &Matrix<T, ROWS, COLUMNS>
+where
+    T: Sum + Mul<Output = T>,
+{
+    type Output = Matrix<T, OTHER_ROWS, OTHER_COLUMNS>;
+    fn mul(self, rhs: Matrix<T, OTHER_ROWS, OTHER_COLUMNS>) -> Self::Output {
+        if ROWS == 1 && OTHER_ROWS == 1 {
+            self.as_size(T::one()).zip(&rhs, |a, b| *a * *b)
+        } else if OTHER_COLUMNS < ROWS {
+            panic!("Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}", ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS);
+        } else {
+            rhs.and_then(&self)
+        }
+    }
+}
+
+impl<
+        T: Copy + Zero + One,
+        const ROWS: usize,
+        const COLUMNS: usize,
+        const OTHER_ROWS: usize,
+        const OTHER_COLUMNS: usize,
+    > Mul<&Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for Matrix<T, ROWS, COLUMNS>
+where
+    T: Sum + Mul<Output = T>,
+{
+    type Output = Matrix<T, OTHER_ROWS, OTHER_COLUMNS>;
+    fn mul(self, rhs: &Matrix<T, OTHER_ROWS, OTHER_COLUMNS>) -> Self::Output {
+        if ROWS == 1 && OTHER_ROWS == 1 {
+            self.as_size(T::one()).zip(&rhs, |a, b| *a * *b)
+        } else if OTHER_COLUMNS < ROWS {
+            panic!("Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}", ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS);
+        } else {
+            rhs.and_then(&self)
+        }
+    }
+}
+
+impl<
+        T: Copy + Zero + One,
+        const ROWS: usize,
+        const COLUMNS: usize,
+        const OTHER_ROWS: usize,
+        const OTHER_COLUMNS: usize,
+    > Mul<&Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for &Matrix<T, ROWS, COLUMNS>
+where
+    T: Sum + Mul<Output = T>,
+{
+    type Output = Matrix<T, OTHER_ROWS, OTHER_COLUMNS>;
+    fn mul(self, rhs: &Matrix<T, OTHER_ROWS, OTHER_COLUMNS>) -> Self::Output {
+        if ROWS == 1 && OTHER_ROWS == 1 {
+            self.as_size(T::one()).zip(&rhs, |a, b| *a * *b)
+        } else if OTHER_COLUMNS < ROWS {
+            panic!("Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}", ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS);
+        } else {
+            rhs.and_then(&self)
+        }
+    }
+}
+
+impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 3, 4> {
+    fn from(quaternion: Quaternion<T>) -> Self {
+        let zero = T::zero();
+        let one = T::one();
+        let two = T::two();
+
+        let xx = quaternion.x().squared();
+        let yy = quaternion.y().squared();
+        let zz = quaternion.z().squared();
+
+        let xy = quaternion.x() * quaternion.y();
+        let wz = quaternion.z() * quaternion.w();
+        let xz = quaternion.z() * quaternion.x();
+        let wy = quaternion.y() * quaternion.w();
+        let yz = quaternion.y() * quaternion.z();
+        let wx = quaternion.x() * quaternion.w();
+
+        Self::new([
+            [
+                one - two * (yy + zz),
+                two * (xy + wz),
+                two * (xz - wy),
+                zero,
+            ],
+            [
+                two * (xy - wz),
+                one - two * (zz + xx),
+                two * (yz + wx),
+                zero,
+            ],
+            [
+                two * (xz + wy),
+                two * (yz - wx),
+                one - two * (yy * xx),
+                zero,
+            ],
+        ])
     }
 }
 
@@ -873,12 +1481,10 @@ impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 4, 4> {
                 one - two * (yy * xx),
                 zero,
             ],
-            [
-                zero,
-                zero,
-                zero,
-                one,
-            ],
+            [zero, zero, zero, one],
         ])
     }
 }
+
+pub type Matrix4x4<T> = Matrix<T, 4, 4>;
+pub type Matrix3x4<T> = Matrix<T, 3, 4>;

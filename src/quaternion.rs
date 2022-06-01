@@ -2,10 +2,15 @@ use std::{iter::Sum, ops::Mul};
 
 use num_traits::Float;
 
-use crate::{float_ext::FloatExt, vector_alias::{Vector4, Vector, Vector3}, vector};
+use crate::{
+    float_ext::FloatExt,
+    vector,
+    vector_alias::{Vector, Vector3, Vector4},
+};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Hash, PartialEq)]
+/// A quaternion
 pub struct Quaternion<T: Float> {
     components: Vector4<T>,
 }
@@ -25,8 +30,35 @@ impl<T: Float> Quaternion<T> {
         Self::new([zero, zero, zero, one])
     }
 
+    /// Create a quaternion representing a rotation around the X axis
+    pub fn from_rotation_x(radians: T) -> Self {
+        let zero = T::zero();
+        let half_radians = radians * T::half();
+        let sin = half_radians.sin();
+        let cos = half_radians.cos();
+        vector!(sin, zero, zero, cos).into()
+    }
+
+    /// Create a quaternion representing a rotation around the Y axis
+    pub fn from_rotation_y(radians: T) -> Self {
+        let zero = T::zero();
+        let half_radians = radians * T::half();
+        let sin = half_radians.sin();
+        let cos = half_radians.cos();
+        vector!(zero, sin, zero, cos).into()
+    }
+
+    /// Create a quaternion representing a rotation around the Z axis
+    pub fn from_rotation_z(radians: T) -> Self {
+        let zero = T::zero();
+        let half_radians = radians * T::half();
+        let sin = half_radians.sin();
+        let cos = half_radians.cos();
+        vector!(zero, zero, sin, cos).into()
+    }
+
     /// Create a quaternion representing a rotation around an axis
-    pub fn from_axis_angle(axis: Vector3<T>, radians: T) -> Self {
+    pub fn from_axis_angle(axis: &Vector3<T>, radians: T) -> Self {
         let half_radians = radians * T::half();
         let sin = half_radians.sin();
         let cos = half_radians.cos();
@@ -35,21 +67,24 @@ impl<T: Float> Quaternion<T> {
 
     /// Calculate the length of the quaternion
     pub fn length(&self) -> T
-        where T: Sum
+    where
+        T: Sum,
     {
         self.components.length()
     }
 
     /// Calculate the squared length of the quaternion
     pub fn length_squared(&self) -> T
-        where T: Sum
+    where
+        T: Sum,
     {
         self.components.length_squared()
     }
 
     /// Creates a normalized copy of the quaternion
     pub fn normalized(&self) -> Self
-        where T: Sum
+    where
+        T: Sum + 'static,
     {
         Self {
             components: self.components.normalized(),
@@ -58,7 +93,8 @@ impl<T: Float> Quaternion<T> {
 
     /// Calculate the inverse of the quaternion
     pub fn inverted(&self) -> Self
-        where T: Sum
+    where
+        T: Sum,
     {
         let inv_norm = T::one() / self.length_squared();
         (self.components * vector!(-inv_norm, -inv_norm, -inv_norm, inv_norm)).into()
@@ -66,37 +102,34 @@ impl<T: Float> Quaternion<T> {
 
     /// Interpolate between this quaternion and another using spherical linear interpolation
     pub fn slerp(&self, target: &Self, n: T) -> Self
-        where T: Sum
+    where
+        T: Sum,
     {
         let cos_omega = self.components.dot(&target.components);
         let (cos_omega, flip) = if cos_omega < T::zero() {
             (-cos_omega, true)
-        }
-        else {
+        } else {
             (cos_omega, false)
         };
 
         let (s1, s2) = if cos_omega > T::one() - T::epsilon() {
-            (
-                T::one() - n,
-                if flip { -n } else { n }
-            )
-        }
-        else {
+            (T::one() - n, if flip { -n } else { n })
+        } else {
             let omega = cos_omega.acos();
             let inv_sin_omega = T::one() / omega.sin();
             (
                 ((T::one() - n) * omega).sin() * inv_sin_omega,
                 if flip {
                     -(n * omega).sin() * inv_sin_omega
-                }
-                else {
+                } else {
                     (n * omega).sin() * inv_sin_omega
-                }
+                },
             )
         };
 
-        self.components.zip(&target.components, |a, b| s1 * *a + s2 * *b).into()
+        self.components
+            .zip(&target.components, |a, b| s1 * *a + s2 * *b)
+            .into()
     }
 
     /// Get the X component of the quaternion
@@ -121,7 +154,8 @@ impl<T: Float> Quaternion<T> {
 
     /// Concatenate this quaternion rotation and another to form a new combined quaternion rotation
     pub fn and_then(&self, next: &Self) -> Self
-        where T: Sum
+    where
+        T: Sum,
     {
         let a = next;
         let b = self;
@@ -132,7 +166,8 @@ impl<T: Float> Quaternion<T> {
             a.y() * b.w() + b.y() * a.w() + cross.y(),
             a.z() * b.w() + b.z() * a.w() + cross.z(),
             a.w() * b.w() - dot,
-        ).into()
+        )
+        .into()
     }
 }
 
@@ -160,9 +195,7 @@ impl<T: Float> Into<[T; 4]> for Quaternion<T> {
 
 impl<T: Float> From<Vector4<T>> for Quaternion<T> {
     fn from(v: Vector4<T>) -> Self {
-        Self {
-            components: v,
-        }
+        Self { components: v }
     }
 }
 
@@ -173,7 +206,8 @@ impl<T: Float> Into<Vector4<T>> for Quaternion<T> {
 }
 
 impl<T: Float> Mul for Quaternion<T>
-    where T: Sum
+where
+    T: Sum,
 {
     type Output = Self;
 
@@ -183,7 +217,8 @@ impl<T: Float> Mul for Quaternion<T>
 }
 
 impl<T: Float> Mul<Quaternion<T>> for &Quaternion<T>
-    where T: Sum
+where
+    T: Sum,
 {
     type Output = Quaternion<T>;
 
@@ -193,7 +228,8 @@ impl<T: Float> Mul<Quaternion<T>> for &Quaternion<T>
 }
 
 impl<T: Float> Mul<&Self> for Quaternion<T>
-    where T: Sum
+where
+    T: Sum,
 {
     type Output = Self;
 
@@ -203,7 +239,8 @@ impl<T: Float> Mul<&Self> for Quaternion<T>
 }
 
 impl<T: Float> Mul for &Quaternion<T>
-    where T: Sum
+where
+    T: Sum,
 {
     type Output = Quaternion<T>;
 

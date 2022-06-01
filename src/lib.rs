@@ -9,39 +9,37 @@
 #![feature(const_option)]
 #![feature(const_trait_impl)]
 #![feature(generic_arg_infer)]
+#![feature(const_convert)]
+#![feature(const_result)]
 
 pub mod float_ext;
-pub mod const_assert;
-pub mod init_array;
+pub(crate) mod init_array;
 pub mod matrix;
-pub mod vector_alias;
 pub mod quaternion;
+pub mod vector_alias;
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
     mod vector_tests {
         use crate::{vector, vector_alias::Vector};
 
         #[test]
         fn math() {
             assert_eq!(vector!(1, 5, -2) + vector!(-99, 0, -2), vector!(-98, 5, -4));
-            assert_eq!(vector!(1.0, 5.0, -2.0) - vector!(-99.0, 0.0, -2.5), vector!(100.0, 5.0, 0.5));
+            assert_eq!(
+                vector!(1.0, 5.0, -2.0) - vector!(-99.0, 0.0, -2.5),
+                vector!(100.0, 5.0, 0.5)
+            );
             assert_eq!(vector!(40, 5, -2) / vector!(2, 2, -2), vector!(20, 2, 1));
             assert_eq!(vector!(1, 2, 3) * vector!(2, 6, -2), vector!(2, 12, -6));
             assert_eq!(vector!(40, 5, -7) % vector!(5, 2, 9), vector!(0, 1, -7));
-            
+
             assert_eq!(vector!(1, 5, -2) + 2, vector!(3, 7, 0));
             assert_eq!(vector!(1, 5, -2) - 2, vector!(-1, 3, -4));
             assert_eq!(vector!(40, 5, -2) / 2, vector!(20, 2, -1));
             assert_eq!(vector!(1, 2, 3) * 2, vector!(2, 4, 6));
             assert_eq!(vector!(40, 5, -7) % 2, vector!(0, 1, -1));
-            
+
             assert_eq!(-vector!(1, 2, 3), vector!(-1, -2, -3));
         }
 
@@ -68,13 +66,34 @@ mod tests {
     }
 
     mod matrix_tests {
-        use crate::{quaternion::Quaternion, vector, vector_alias::{Vector, Vector3}};
+        use crate::{
+            matrix::{Matrix3x4, Matrix4x4},
+            quaternion::Quaternion,
+            vector_alias::Vector4,
+        };
+
+        #[test]
+        fn identity() {
+            let ident = Matrix4x4::identity();
+            assert_eq!(ident, Matrix4x4::new([
+                [1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+            ]));
+        }
 
         #[test]
         fn rotation() {
-            let unit_x: Vector3<f64> = Vector3::unit_x();
-            let rotation = Quaternion::from_axis_angle(Vector3::unit_y(), std::f64::consts::TAU * 0.25);
-
+            let unit_x: Vector4<f64> = Vector4::unit_x();
+            let rotation =
+                Matrix3x4::from(Quaternion::from_rotation_y(std::f64::consts::TAU * 0.125));
+            let rotated = unit_x.and_then(&rotation).xyz();
+            assert!(
+                (rotated.x() - 2.0f64.sqrt() * 0.5).abs() < 0.000001
+                    && rotated.y().abs() < 0.000001
+                    && (rotated.z() + 2.0f64.sqrt() * 0.5).abs() < 0.000001
+            );
         }
     }
 }
