@@ -880,7 +880,7 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         })])
     }
 
-    /// Create a vector with its Y component set to 1 and all other components set to 0
+    /// Create a vector with its Z component set to 1 and all other components set to 0
     pub fn unit_z() -> Self {
         if COLUMNS < 3 {
             panic!("Vector cannot have a Z component");
@@ -892,7 +892,7 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         })])
     }
 
-    /// Create a vector with its Y component set to 1 and all other components set to 0
+    /// Create a vector with its W component set to 1 and all other components set to 0
     pub fn unit_w() -> Self {
         if COLUMNS < 4 {
             panic!("Vector cannot have a Z component");
@@ -922,6 +922,10 @@ impl<T: Copy + Zero + One + Default, const COLUMNS: usize> Default for Matrix<T,
         Self::from_scalar(T::default())
     }
 }
+
+// =============================
+// Swizzle Definitions
+// =============================
 
 // Swizzles
 macro_rules! swizzle_idx {
@@ -1081,6 +1085,11 @@ swizzles3! {
     (w,w,z),
     (w,w,w),
 }
+
+// =============================
+// Operator Definitions
+// I'm sorry.
+// =============================
 
 // Math operations
 macro_rules! impl_op_bi {
@@ -1307,6 +1316,7 @@ impl<T: Copy + Zero + One + PartialEq + Eq, const ROWS: usize, const COLUMNS: us
 {
 }
 
+// Hashing implentation for Matrix
 impl<T: Copy + Zero + One + Hash, const ROWS: usize, const COLUMNS: usize> Hash
     for Matrix<T, ROWS, COLUMNS>
 {
@@ -1317,6 +1327,7 @@ impl<T: Copy + Zero + One + Hash, const ROWS: usize, const COLUMNS: usize> Hash
     }
 }
 
+// Matrix * Matrix
 impl<
         T: Copy + Zero + One,
         const ROWS: usize,
@@ -1405,6 +1416,7 @@ where
     }
 }
 
+// Converting a quaternion to a matrix with 3 rows and 4 columns; creates a rotation matrix
 impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 3, 4> {
     fn from(quaternion: Quaternion<T>) -> Self {
         let zero = T::zero();
@@ -1445,6 +1457,7 @@ impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 3, 4> {
     }
 }
 
+// Converting a quaternion to a 4x4 matrix; creates a rotation matrix
 impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 4, 4> {
     fn from(quaternion: Quaternion<T>) -> Self {
         let zero = T::zero();
@@ -1486,5 +1499,7 @@ impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 4, 4> {
     }
 }
 
+/// A matrix with 4 rows and 4 columns.
 pub type Matrix4x4<T> = Matrix<T, 4, 4>;
+/// A matrix with 3 rows and 4 columns.
 pub type Matrix3x4<T> = Matrix<T, 3, 4>;

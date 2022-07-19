@@ -17,11 +17,12 @@ pub(crate) mod init_array;
 pub mod matrix;
 pub mod quaternion;
 pub mod vector_alias;
+pub mod prelude;
 
 #[cfg(test)]
 mod tests {
     mod vector_tests {
-        use crate::{vector, vector_alias::Vector};
+        use crate::prelude::*;
 
         #[test]
         fn math() {
@@ -66,11 +67,7 @@ mod tests {
     }
 
     mod matrix_tests {
-        use crate::{
-            matrix::{Matrix3x4, Matrix4x4},
-            quaternion::Quaternion,
-            vector_alias::Vector4,
-        };
+        use crate::prelude::*;
 
         #[test]
         fn identity() {

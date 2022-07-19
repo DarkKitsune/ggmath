@@ -1,7 +1,7 @@
 use crate::matrix::Matrix;
 
-/// A vector
-pub type Vector<T, const COMPONENTS: usize> = Matrix<T, 1, COMPONENTS>;
+/// A vector with a generic size.
+pub type Vector<T, const N: usize> = Matrix<T, 1, N>;
 
 /// A vector with 2 components
 pub type Vector2<T> = Vector<T, 2>;
