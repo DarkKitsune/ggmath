@@ -430,7 +430,7 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
                 panic!("Matrix must have at least 3 columns");
             }
         }
-        Vector::from_components(self.row(0).as_slice()[0..2].try_into().unwrap())
+        Vector::from_components(self.row(0).as_slice()[0..3].try_into().unwrap())
     }
 
     /// Set the X axis component of a transformation matrix
@@ -461,7 +461,7 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
                 panic!("Matrix must have at least 3 columns");
             }
         }
-        Vector::from_components(self.row(1).as_slice()[0..2].try_into().unwrap())
+        Vector::from_components(self.row(1).as_slice()[0..3].try_into().unwrap())
     }
 
     /// Set the Y axis component of a transformation matrix
@@ -492,7 +492,7 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
                 panic!("Matrix must have at least 3 columns");
             }
         }
-        Vector::from_components(self.row(2).as_slice()[0..2].try_into().unwrap())
+        Vector::from_components(self.row(2).as_slice()[0..3].try_into().unwrap())
     }
 
     /// Set the Z axis component of a transformation matrix
@@ -1416,10 +1416,9 @@ where
     }
 }
 
-// Converting a quaternion to a matrix with 3 rows and 4 columns; creates a rotation matrix
-impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 3, 4> {
+// Converting a quaternion to a matrix with 3 rows and 3 columns; creates a rotation matrix
+impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 3, 3> {
     fn from(quaternion: Quaternion<T>) -> Self {
-        let zero = T::zero();
         let one = T::one();
         let two = T::two();
 
@@ -1439,19 +1438,16 @@ impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 3, 4> {
                 one - two * (yy + zz),
                 two * (xy + wz),
                 two * (xz - wy),
-                zero,
             ],
             [
                 two * (xy - wz),
                 one - two * (zz + xx),
                 two * (yz + wx),
-                zero,
             ],
             [
                 two * (xz + wy),
                 two * (yz - wx),
                 one - two * (yy * xx),
-                zero,
             ],
         ])
     }
@@ -1501,5 +1497,5 @@ impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 4, 4> {
 
 /// A matrix with 4 rows and 4 columns.
 pub type Matrix4x4<T> = Matrix<T, 4, 4>;
-/// A matrix with 3 rows and 4 columns.
-pub type Matrix3x4<T> = Matrix<T, 3, 4>;
+/// A matrix with 3 rows and 3 columns.
+pub type Matrix3x3<T> = Matrix<T, 3, 3>;

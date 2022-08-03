@@ -2,7 +2,7 @@ pub use crate::{
     float_ext::FloatExt,
     matrix::{
         Matrix,
-        Matrix3x4,
+        Matrix3x3,
         Matrix4x4,
         MatrixIter,
         Row,

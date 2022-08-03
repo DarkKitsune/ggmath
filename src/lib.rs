@@ -84,7 +84,7 @@ mod tests {
         fn rotation() {
             let unit_x: Vector4<f64> = Vector4::unit_x();
             let rotation =
-                Matrix3x4::from(Quaternion::from_rotation_y(std::f64::consts::TAU * 0.125));
+                Matrix3x3::from(Quaternion::from_rotation_y(std::f64::consts::TAU * 0.125));
             let rotated = unit_x.and_then(&rotation).xyz();
             assert!(
                 (rotated.x() - 2.0f64.sqrt() * 0.5).abs() < 0.000001
