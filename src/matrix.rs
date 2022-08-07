@@ -3,7 +3,7 @@ use std::{
     fmt::Debug,
     hash::Hash,
     iter::Sum,
-    ops::{Add, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub},
+    ops::{Add, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub, AddAssign},
 };
 
 use num_traits::{Float, One, Zero};
@@ -1314,6 +1314,14 @@ impl<T: Copy + Zero + One + PartialEq, const ROWS: usize, const COLUMNS: usize> 
 impl<T: Copy + Zero + One + PartialEq + Eq, const ROWS: usize, const COLUMNS: usize> Eq
     for Matrix<T, ROWS, COLUMNS>
 {
+}
+
+impl<T: Copy + Zero + One + PartialEq + Eq + 'static, const ROWS: usize, const COLUMNS: usize> AddAssign
+    for Matrix<T, ROWS, COLUMNS>
+{
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
 }
 
 // Hashing implentation for Matrix

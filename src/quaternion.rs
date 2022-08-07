@@ -1,4 +1,4 @@
-use std::{iter::Sum, ops::Mul};
+use std::{iter::Sum, ops::{Mul, AddAssign, MulAssign}};
 
 use num_traits::Float;
 
@@ -246,5 +246,23 @@ where
 
     fn mul(self, rhs: Self) -> Self::Output {
         rhs.and_then(&self)
+    }
+}
+
+impl<T: Float> MulAssign for Quaternion<T>
+where
+    T: Sum,
+{
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
+}
+
+impl<T: Float> MulAssign<&Quaternion<T>> for Quaternion<T>
+where
+    T: Sum,
+{
+    fn mul_assign(&mut self, rhs: &Quaternion<T>) {
+        *self = *self * rhs;
     }
 }
