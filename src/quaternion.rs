@@ -24,7 +24,7 @@ impl<T: Float> Quaternion<T> {
     }
 
     /// Create an identity quaternion
-    pub fn new_identity() -> Self {
+    pub fn identity() -> Self {
         let zero = T::zero();
         let one = T::zero();
         Self::new([zero, zero, zero, one])
@@ -174,14 +174,6 @@ impl<T: Float> Quaternion<T> {
         )
         .into()
     }
-}
-
-impl Quaternion<f32> {
-    pub const IDENTITY: Self = Self::new([0.0, 0.0, 0.0, 1.0]);
-}
-
-impl Quaternion<f64> {
-    pub const IDENTITY: Self = Self::new([0.0, 0.0, 0.0, 1.0]);
 }
 
 impl<T: Float> From<[T; 4]> for Quaternion<T> {
