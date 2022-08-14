@@ -92,11 +92,16 @@ impl<T: Float> Quaternion<T> {
     }
 
     /// Calculate the inverse of the quaternion
+    /// May panic if the quaternion has a length of zero
     pub fn inverted(&self) -> Self
     where
         T: Sum,
     {
-        let inv_norm = T::one() / self.length_squared();
+        let len_sq = self.length_squared();
+        if len_sq.abs() < T::epsilon() {
+            panic!("Cannot invert a zero-length quaternion");
+        }
+        let inv_norm = T::one() / len_sq;
         (self.components * vector!(-inv_norm, -inv_norm, -inv_norm, inv_norm)).into()
     }
 
