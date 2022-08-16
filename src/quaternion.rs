@@ -1,4 +1,7 @@
-use std::{iter::Sum, ops::{Mul, AddAssign, MulAssign}};
+use std::{
+    iter::Sum,
+    ops::{Mul, MulAssign},
+};
 
 use num_traits::Float;
 
@@ -26,7 +29,7 @@ impl<T: Float> Quaternion<T> {
     /// Create an identity quaternion
     pub fn identity() -> Self {
         let zero = T::zero();
-        let one = T::zero();
+        let one = T::one();
         Self::new([zero, zero, zero, one])
     }
 
@@ -63,6 +66,25 @@ impl<T: Float> Quaternion<T> {
         let sin = half_radians.sin();
         let cos = half_radians.cos();
         vector!(axis.x() * sin, axis.y() * sin, axis.z() * sin, cos).into()
+    }
+
+    /// Try to break the quaternion into a rotation around an axis (in radians)
+    pub fn axis_angle(&self) -> (Vector3<T>, T)
+    where
+        T: Sum + 'static,
+    {
+        let norm = if self.w() > T::one() {
+            self.normalized()
+        } else {
+            *self
+        };
+        let w = T::two() * norm.w().acos();
+        let den = (T::one() - norm.w() * norm.w()).sqrt();
+        if den >= T::epsilon() {
+            (norm.xyz() / den, w)
+        } else {
+            (Vector3::unit_x(), T::zero())
+        }
     }
 
     /// Calculate the length of the quaternion
@@ -157,13 +179,18 @@ impl<T: Float> Quaternion<T> {
         self.components.w()
     }
 
+    /// Get the X, Y, and Z components of the quaternion
+    pub const fn xyz(&self) -> Vector3<T> {
+        self.components.xyz()
+    }
+
     /// Concatenate this quaternion rotation and another to form a new combined quaternion rotation
     pub fn and_then(&self, next: &Self) -> Self
     where
         T: Sum,
     {
-        let a = next;
-        let b = self;
+        let a = self;
+        let b = next;
         let cross: Vector3<T> = a.components.xyz().cross(&b.components.xyz());
         let dot = a.components.xyz().dot(&b.components.xyz());
         vector!(

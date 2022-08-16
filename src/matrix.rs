@@ -3,17 +3,13 @@ use std::{
     fmt::Debug,
     hash::Hash,
     iter::Sum,
-    ops::{Add, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub, AddAssign},
+    ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub},
 };
 
 use num_traits::{Float, One, Zero};
 
 use crate::{
-    float_ext::FloatExt,
-    init_array,
-    quaternion::Quaternion,
-    vector,
-    vector_alias::Vector,
+    float_ext::FloatExt, init_array, quaternion::Quaternion, vector, vector_alias::Vector,
 };
 
 #[repr(C)]
@@ -560,6 +556,52 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
         translation_row.data[2] = translation.z();
         matrix
     }
+
+    /// Creates a rotation matrix that applies the given rotation
+    pub fn new_rotation(rotation: &Quaternion<T>) -> Self
+    where
+        T: Float + Sum + 'static,
+    {
+        let (axis, angle) = rotation.axis_angle();
+        Self::new_rotation_on_axis(&axis, angle)
+    }
+
+    /// Creates a rotation matrix that applies the given rotation on the given axis
+    pub fn new_rotation_on_axis(axis: &Vector<T, 3>, radians: T) -> Self
+    where
+        T: Float + Sum + 'static,
+    {
+        #[cfg(debug_assertions)]
+        {
+            if ROWS < 3 {
+                panic!("Matrix must have at least 3 rows");
+            }
+            if COLUMNS < 3 {
+                panic!("Matrix must have at least 3 columns");
+            }
+        }
+        let mut matrix = Self::identity();
+        let axis = axis.normalized();
+        let sin = radians.sin();
+        let cos = radians.cos();
+        let one_minus_cos = T::one() - cos;
+        let x = axis.x();
+        let y = axis.y();
+        let z = axis.z();
+        let row = matrix.as_row_mut(0).unwrap();
+        row.data[0] = x * x * one_minus_cos + cos;
+        row.data[1] = x * y * one_minus_cos - z * sin;
+        row.data[2] = x * z * one_minus_cos + y * sin;
+        let row = matrix.as_row_mut(1).unwrap();
+        row.data[0] = y * x * one_minus_cos + z * sin;
+        row.data[1] = y * y * one_minus_cos + cos;
+        row.data[2] = y * z * one_minus_cos - x * sin;
+        let row = matrix.as_row_mut(2).unwrap();
+        row.data[0] = z * x * one_minus_cos - y * sin;
+        row.data[1] = z * y * one_minus_cos + x * sin;
+        row.data[2] = z * z * one_minus_cos + cos;
+        matrix
+    }
 }
 
 // 4x4 matrices only
@@ -578,13 +620,24 @@ impl<T: Copy + Float> Matrix<T, 4, 4> {
                 panic!("Invalid near/far planes");
             }
         }
-        let y_scale = T::one() / (fov * T::half()).tan();
-        let x_scale = y_scale / aspect_ratio;
-        let z_scale = far / (near - far);
-        let mut matrix = Self::new_scale(&vector!(x_scale, y_scale, z_scale));
-        matrix.as_row_mut(2).unwrap().data[3] = -T::one();
-        matrix.as_row_mut(3).unwrap().data[2] = near * z_scale;
-        matrix
+        let f = (T::pi() * T::half() - T::half() * fov).tan();
+        let range_inverted = T::one() / (near - far);
+        Self::new([
+            [f / aspect_ratio, T::zero(), T::zero(), T::zero()],
+            [T::zero(), f, T::zero(), T::zero()],
+            [
+                T::zero(),
+                T::zero(),
+                (near + far) * range_inverted,
+                -T::one(),
+            ],
+            [
+                T::zero(),
+                T::zero(),
+                T::two() * near * far * range_inverted,
+                T::zero(),
+            ],
+        ])
     }
 
     /// Creates an orthographic projection matrix
@@ -1316,8 +1369,8 @@ impl<T: Copy + Zero + One + PartialEq + Eq, const ROWS: usize, const COLUMNS: us
 {
 }
 
-impl<T: Copy + Zero + One + PartialEq + Eq + 'static, const ROWS: usize, const COLUMNS: usize> AddAssign
-    for Matrix<T, ROWS, COLUMNS>
+impl<T: Copy + Zero + One + PartialEq + Eq + 'static, const ROWS: usize, const COLUMNS: usize>
+    AddAssign for Matrix<T, ROWS, COLUMNS>
 {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
@@ -1425,81 +1478,16 @@ where
 }
 
 // Converting a quaternion to a matrix with 3 rows and 3 columns; creates a rotation matrix
-impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 3, 3> {
+impl<T: Copy + Float + Sum + 'static> From<Quaternion<T>> for Matrix<T, 3, 3> {
     fn from(quaternion: Quaternion<T>) -> Self {
-        let one = T::one();
-        let two = T::two();
-
-        let xx = quaternion.x().squared();
-        let yy = quaternion.y().squared();
-        let zz = quaternion.z().squared();
-
-        let xy = quaternion.x() * quaternion.y();
-        let wz = quaternion.z() * quaternion.w();
-        let xz = quaternion.z() * quaternion.x();
-        let wy = quaternion.y() * quaternion.w();
-        let yz = quaternion.y() * quaternion.z();
-        let wx = quaternion.x() * quaternion.w();
-
-        Self::new([
-            [
-                one - two * (yy + zz),
-                two * (xy + wz),
-                two * (xz - wy),
-            ],
-            [
-                two * (xy - wz),
-                one - two * (zz + xx),
-                two * (yz + wx),
-            ],
-            [
-                two * (xz + wy),
-                two * (yz - wx),
-                one - two * (yy * xx),
-            ],
-        ])
+        Self::new_rotation(&quaternion)
     }
 }
 
 // Converting a quaternion to a 4x4 matrix; creates a rotation matrix
-impl<T: Copy + Float> From<Quaternion<T>> for Matrix<T, 4, 4> {
+impl<T: Copy + Float + Sum + 'static> From<Quaternion<T>> for Matrix<T, 4, 4> {
     fn from(quaternion: Quaternion<T>) -> Self {
-        let zero = T::zero();
-        let one = T::one();
-        let two = T::two();
-
-        let xx = quaternion.x().squared();
-        let yy = quaternion.y().squared();
-        let zz = quaternion.z().squared();
-
-        let xy = quaternion.x() * quaternion.y();
-        let wz = quaternion.z() * quaternion.w();
-        let xz = quaternion.z() * quaternion.x();
-        let wy = quaternion.y() * quaternion.w();
-        let yz = quaternion.y() * quaternion.z();
-        let wx = quaternion.x() * quaternion.w();
-
-        Self::new([
-            [
-                one - two * (yy + zz),
-                two * (xy + wz),
-                two * (xz - wy),
-                zero,
-            ],
-            [
-                two * (xy - wz),
-                one - two * (zz + xx),
-                two * (yz + wx),
-                zero,
-            ],
-            [
-                two * (xz + wy),
-                two * (yz - wx),
-                one - two * (yy * xx),
-                zero,
-            ],
-            [zero, zero, zero, one],
-        ])
+        Self::new_rotation(&quaternion)
     }
 }
 

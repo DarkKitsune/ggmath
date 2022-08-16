@@ -15,9 +15,10 @@
 pub mod float_ext;
 pub(crate) mod init_array;
 pub mod matrix;
-pub mod quaternion;
-pub mod vector_alias;
 pub mod prelude;
+pub mod quaternion;
+pub mod random;
+pub mod vector_alias;
 
 #[cfg(test)]
 mod tests {
@@ -72,12 +73,10 @@ mod tests {
         #[test]
         fn identity() {
             let ident = Matrix4x4::identity();
-            assert_eq!(ident, Matrix4x4::new([
-                [1, 0, 0, 0],
-                [0, 1, 0, 0],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1],
-            ]));
+            assert_eq!(
+                ident,
+                Matrix4x4::new([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1],])
+            );
         }
 
         #[test]
