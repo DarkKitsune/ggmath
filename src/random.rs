@@ -8,7 +8,7 @@ pub struct Lcg {
 }
 
 impl Lcg {
-    pub fn new(seed: &impl ToSeed) -> Self {
+    pub fn new(seed: impl ToSeed) -> Self {
         Self {
             seed: seed.to_seed(),
         }
@@ -20,7 +20,7 @@ impl Lcg {
 
     fn next_u32(&mut self) -> u32 {
         self.seed = self.seed.wrapping_mul(0xB2788569).wrapping_add(0x5A6EC706);
-        ((self.seed >> 32) & 0xFFFFFFFF) as u32
+        ((self.seed) & 0xFFFFFFFF) as u32
     }
 }
 
@@ -35,7 +35,7 @@ pub struct NormalLcg<const DIMENSIONS: usize> {
 }
 
 impl<const DIMENSIONS: usize> NormalLcg<DIMENSIONS> {
-    pub fn new(seed: &impl ToSeed) -> Self {
+    pub fn new(seed: impl ToSeed) -> Self {
         Self {
             random: Lcg::new(seed),
             stored: [0.0; DIMENSIONS],
@@ -144,6 +144,12 @@ impl FromRandom for bool {
     }
 }
 
+impl<T: FromRandom + Copy + Zero + One, const N: usize> FromRandom for Vector<T, N> {
+    fn from_lcg(random: &mut Lcg) -> Self {
+        Vector::new([init_array!([T; N], mut |_| T::from_lcg(random))])
+    }
+}
+
 impl<const COUNT: usize> FromRandom for [u8; COUNT] {
     fn from_lcg(random: &mut Lcg) -> Self {
         let mut result = [0; COUNT];
@@ -169,8 +175,9 @@ pub trait ToSeed {
     fn to_seed(&self) -> u64;
     /// Returns a random value of type `R` using `self` as a seed.
     /// A linear congruential generator is used to generate the random value.
-    fn to_random<R: FromRandom>(&self) -> R
-    where Self: Sized
+    fn into_random<R: FromRandom>(self) -> R
+    where
+        Self: Sized,
     {
         R::from_lcg(&mut Lcg::new(self))
     }
@@ -226,25 +233,25 @@ impl ToSeed for i64 {
 
 impl ToSeed for str {
     fn to_seed(&self) -> u64 {
-        self.as_bytes().iter().fold(0, |acc, b| acc ^ b.to_seed())
+        self.as_bytes().iter().enumerate().fold(0, |acc, (idx, b)| acc ^ b.to_seed().wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1)))
     }
 }
 
 impl<T: ToSeed> ToSeed for [T] {
     fn to_seed(&self) -> u64 {
-        self.iter().fold(0, |acc, b| acc ^ b.to_seed())
+        self.iter().enumerate().fold(0, |acc, (idx, b)| acc ^ b.to_seed().wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1)))
     }
 }
 
 impl<T: ToSeed> ToSeed for Vec<T> {
     fn to_seed(&self) -> u64 {
-        self.iter().fold(0, |acc, b| acc ^ b.to_seed())
+        self.iter().enumerate().fold(0, |acc, (idx, b)| acc ^ b.to_seed().wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1)))
     }
 }
 
 impl<T: ToSeed + Copy + Zero + One, const N: usize> ToSeed for Vector<T, N> {
     fn to_seed(&self) -> u64 {
-        self.iter().fold(0, |acc, b| acc ^ b.to_seed())
+        self.iter().enumerate().fold(0, |acc, (idx, b)| acc ^ b.to_seed().wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1)))
     }
 }
 
@@ -256,19 +263,19 @@ impl<T0: ToSeed, T1: ToSeed> ToSeed for (T0, T1) {
 
 impl<T0: ToSeed, T1: ToSeed, T2: ToSeed> ToSeed for (T0, T1, T2) {
     fn to_seed(&self) -> u64 {
-        self.0.to_seed() ^ self.1.to_seed() ^ self.2.to_seed()
+        self.0.to_seed() ^ self.1.to_seed().wrapping_mul(2967931333) ^ self.2.to_seed().wrapping_mul(2967931333 * 2)
     }
 }
 
 impl<T0: ToSeed, T1: ToSeed, T2: ToSeed, T3: ToSeed> ToSeed for (T0, T1, T2, T3) {
     fn to_seed(&self) -> u64 {
-        self.0.to_seed() ^ self.1.to_seed() ^ self.2.to_seed() ^ self.3.to_seed()
+        self.0.to_seed() ^ self.1.to_seed().wrapping_mul(2967931333) ^ self.2.to_seed().wrapping_mul(2967931333 * 2) ^ self.3.to_seed().wrapping_mul(2967931333 * 3)
     }
 }
 
 impl<T0: ToSeed, T1: ToSeed, T2: ToSeed, T3: ToSeed, T4: ToSeed> ToSeed for (T0, T1, T2, T3, T4) {
     fn to_seed(&self) -> u64 {
-        self.0.to_seed() ^ self.1.to_seed() ^ self.2.to_seed() ^ self.3.to_seed() ^ self.4.to_seed()
+        self.0.to_seed() ^ self.1.to_seed().wrapping_mul(2967931333) ^ self.2.to_seed().wrapping_mul(2967931333 * 2) ^ self.3.to_seed().wrapping_mul(2967931333 * 3) ^ self.4.to_seed().wrapping_mul(2967931333 * 4)
     }
 }
 
@@ -277,10 +284,10 @@ impl<T0: ToSeed, T1: ToSeed, T2: ToSeed, T3: ToSeed, T4: ToSeed, T5: ToSeed> ToS
 {
     fn to_seed(&self) -> u64 {
         self.0.to_seed()
-            ^ self.1.to_seed()
-            ^ self.2.to_seed()
-            ^ self.3.to_seed()
-            ^ self.4.to_seed()
-            ^ self.5.to_seed()
+            ^ self.1.to_seed().wrapping_mul(2967931333)
+            ^ self.2.to_seed().wrapping_mul(2967931333 * 2)
+            ^ self.3.to_seed().wrapping_mul(2967931333 * 3)
+            ^ self.4.to_seed().wrapping_mul(2967931333 * 4)
+            ^ self.5.to_seed().wrapping_mul(2967931333 * 5)
     }
 }

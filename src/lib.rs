@@ -15,6 +15,7 @@
 pub mod float_ext;
 pub(crate) mod init_array;
 pub mod matrix;
+pub mod noise;
 pub mod prelude;
 pub mod quaternion;
 pub mod random;
@@ -90,6 +91,67 @@ mod tests {
                     && rotated.y().abs() < 0.000001
                     && (rotated.z() + 2.0f64.sqrt() * 0.5).abs() < 0.000001
             );
+        }
+    }
+
+    mod random_tests {
+        use crate::prelude::*;
+
+        #[test]
+        fn deviation() {
+            // Test regular LCG's deviation.
+            let mut lcg = Lcg::new(71923);
+            let mut accumulator = 0.0;
+            for _ in 0..2000 {
+                accumulator += lcg.next::<f32>();
+            }
+            let mean = accumulator / 2000.0;
+            assert!((mean - 0.5).abs() < 0.01);
+
+            // Test normally distributed LCG's deviation.
+            let mut lcg = NormalLcg::<3>::new(9471);
+            let mut accumulator = 0.0;
+            for _ in 0..2000 {
+                accumulator += lcg.next_f32();
+            }
+            let mean = accumulator / 2000.0;
+            assert!((mean - 0.5).abs() < 0.01);
+        }
+    }
+
+    mod noise_tests {
+        use image::RgbImage;
+
+        use crate::prelude::*;
+
+        #[test]
+        fn noise() {
+            const SIZE: u32 = 512;
+
+            // Create noise generator
+            let noise = Noise::<2>::new(
+                0xDEADBEEFu32, // Seed
+                7, // Number of levels
+                2.0, // Scale of level 0 (most detailed level)
+                1.5, // Smoothness value, lower value results in rougher noise
+                0.2 // Detail strength, higher value results in lower (higher detail) levels contributing more to the end result
+            );
+
+            // Create image
+            let mut image = RgbImage::new(SIZE, SIZE);
+
+            // Sample noise for each pixel
+            for (x, y, pixel) in image.enumerate_pixels_mut() {
+                // Sample value at pixel position
+                let sample = noise.sample_f64(vector!(x as f64, y as f64));
+
+                // Pixel brightness = sample value
+                let byte = (sample * 255.0) as u8;
+                *pixel = image::Rgb([byte, byte, byte]);
+            }
+
+            // Save image
+            image.save("noise.png").unwrap();
         }
     }
 }

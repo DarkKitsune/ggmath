@@ -7,6 +7,7 @@ pub trait FloatExt: Float {
     fn pi() -> Self;
     fn tau() -> Self;
     fn squared(self) -> Self;
+    fn lerp(self, other: Self, amount: Self) -> Self;
 }
 
 impl<T: Float> FloatExt for T {
@@ -28,5 +29,9 @@ impl<T: Float> FloatExt for T {
 
     fn squared(self) -> Self {
         self * self
+    }
+
+    fn lerp(self, other: Self, amount: Self) -> Self {
+        self + (other - self) * amount
     }
 }

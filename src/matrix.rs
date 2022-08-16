@@ -821,6 +821,14 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         }
     }
 
+    /// Perform linear interpolation between two vectors
+    pub fn lerp(&self, other: &Self, t: T) -> Self
+    where
+        T: Float + 'static,
+    {
+        *self + (other - self) * t
+    }
+
     /// Get the X component of the vector
     pub const fn x(&self) -> T {
         *self.rows[0]
