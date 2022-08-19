@@ -131,10 +131,10 @@ mod tests {
             // Create noise generator
             let noise = Noise::<2>::new(
                 0xDEADBEEFu32, // Seed
-                7, // Number of levels
-                2.0, // Scale of level 0 (most detailed level)
-                1.5, // Smoothness value, lower value results in rougher noise
-                0.2 // Detail strength, higher value results in lower (higher detail) levels contributing more to the end result
+                7,             // Number of levels
+                2.0,           // Scale of level 0 (most detailed level)
+                1.5,           // Smoothness value, lower value results in rougher noise
+                0.2, // Detail strength, higher value results in lower (higher detail) levels contributing more to the end result
             );
 
             // Create image

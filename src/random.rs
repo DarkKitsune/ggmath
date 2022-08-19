@@ -3,6 +3,7 @@ use num_traits::{One, Zero};
 use crate::{init_array, prelude::Vector};
 
 /// A linear congruential generator for generating pseudo-random values efficiently.
+#[derive(Debug, Clone, PartialEq)]
 pub struct Lcg {
     seed: u64,
 }
@@ -28,6 +29,7 @@ impl Lcg {
 /// Values are normally distributed (biased towards 0.5). When generating random points on a circle or sphere,
 /// `DIMENSIONS` should equal the number of dimensions of the sphere, but can also be used
 /// to adjust the curve, as the higher `DIMENSIONS` is, the more values are biased towards 0.5.
+#[derive(Debug, Clone, PartialEq)]
 pub struct NormalLcg<const DIMENSIONS: usize> {
     random: Lcg,
     stored: [f64; DIMENSIONS],
@@ -233,25 +235,41 @@ impl ToSeed for i64 {
 
 impl ToSeed for str {
     fn to_seed(&self) -> u64 {
-        self.as_bytes().iter().enumerate().fold(0, |acc, (idx, b)| acc ^ b.to_seed().wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1)))
+        self.as_bytes().iter().enumerate().fold(0, |acc, (idx, b)| {
+            acc ^ b
+                .to_seed()
+                .wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1))
+        })
     }
 }
 
 impl<T: ToSeed> ToSeed for [T] {
     fn to_seed(&self) -> u64 {
-        self.iter().enumerate().fold(0, |acc, (idx, b)| acc ^ b.to_seed().wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1)))
+        self.iter().enumerate().fold(0, |acc, (idx, b)| {
+            acc ^ b
+                .to_seed()
+                .wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1))
+        })
     }
 }
 
 impl<T: ToSeed> ToSeed for Vec<T> {
     fn to_seed(&self) -> u64 {
-        self.iter().enumerate().fold(0, |acc, (idx, b)| acc ^ b.to_seed().wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1)))
+        self.iter().enumerate().fold(0, |acc, (idx, b)| {
+            acc ^ b
+                .to_seed()
+                .wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1))
+        })
     }
 }
 
 impl<T: ToSeed + Copy + Zero + One, const N: usize> ToSeed for Vector<T, N> {
     fn to_seed(&self) -> u64 {
-        self.iter().enumerate().fold(0, |acc, (idx, b)| acc ^ b.to_seed().wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1)))
+        self.iter().enumerate().fold(0, |acc, (idx, b)| {
+            acc ^ b
+                .to_seed()
+                .wrapping_mul((idx as u64).wrapping_mul(2967931333).wrapping_add(1))
+        })
     }
 }
 
@@ -263,19 +281,28 @@ impl<T0: ToSeed, T1: ToSeed> ToSeed for (T0, T1) {
 
 impl<T0: ToSeed, T1: ToSeed, T2: ToSeed> ToSeed for (T0, T1, T2) {
     fn to_seed(&self) -> u64 {
-        self.0.to_seed() ^ self.1.to_seed().wrapping_mul(2967931333) ^ self.2.to_seed().wrapping_mul(2967931333 * 2)
+        self.0.to_seed()
+            ^ self.1.to_seed().wrapping_mul(2967931333)
+            ^ self.2.to_seed().wrapping_mul(2967931333 * 2)
     }
 }
 
 impl<T0: ToSeed, T1: ToSeed, T2: ToSeed, T3: ToSeed> ToSeed for (T0, T1, T2, T3) {
     fn to_seed(&self) -> u64 {
-        self.0.to_seed() ^ self.1.to_seed().wrapping_mul(2967931333) ^ self.2.to_seed().wrapping_mul(2967931333 * 2) ^ self.3.to_seed().wrapping_mul(2967931333 * 3)
+        self.0.to_seed()
+            ^ self.1.to_seed().wrapping_mul(2967931333)
+            ^ self.2.to_seed().wrapping_mul(2967931333 * 2)
+            ^ self.3.to_seed().wrapping_mul(2967931333 * 3)
     }
 }
 
 impl<T0: ToSeed, T1: ToSeed, T2: ToSeed, T3: ToSeed, T4: ToSeed> ToSeed for (T0, T1, T2, T3, T4) {
     fn to_seed(&self) -> u64 {
-        self.0.to_seed() ^ self.1.to_seed().wrapping_mul(2967931333) ^ self.2.to_seed().wrapping_mul(2967931333 * 2) ^ self.3.to_seed().wrapping_mul(2967931333 * 3) ^ self.4.to_seed().wrapping_mul(2967931333 * 4)
+        self.0.to_seed()
+            ^ self.1.to_seed().wrapping_mul(2967931333)
+            ^ self.2.to_seed().wrapping_mul(2967931333 * 2)
+            ^ self.3.to_seed().wrapping_mul(2967931333 * 3)
+            ^ self.4.to_seed().wrapping_mul(2967931333 * 4)
     }
 }
 

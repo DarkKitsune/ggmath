@@ -1,5 +1,6 @@
 use crate::{init_array, prelude::*};
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Noise<const DIMENSIONS: usize> {
     seed: u64,
     levels: usize,
@@ -9,7 +10,13 @@ pub struct Noise<const DIMENSIONS: usize> {
 }
 
 impl<const DIMENSIONS: usize> Noise<DIMENSIONS> {
-    pub fn new(seed: impl ToSeed, levels: usize, scale: f64, smoothness: f64, detail_strength: f64) -> Self {
+    pub fn new(
+        seed: impl ToSeed,
+        levels: usize,
+        scale: f64,
+        smoothness: f64,
+        detail_strength: f64,
+    ) -> Self {
         if levels == 0 {
             panic!("Noise::new(): levels must be greater than 0");
         }
@@ -73,15 +80,14 @@ impl<const DIMENSIONS: usize> Noise<DIMENSIONS> {
                     self._raw_noise(min_corner + Vector::unit_x() + Vector::unit_z()),
                     position.x() - min_corner.x() as f64,
                 ))
-                    .lerp(
-                        self
-                            ._raw_noise(min_corner + Vector::unit_y() + Vector::unit_z())
-                            .lerp(
-                                self._raw_noise(min_corner + 1),
-                                position.x() - min_corner.x() as f64,
-                            ),
-                        position.y() - min_corner.y() as f64,
-                    ),
+                .lerp(
+                    self._raw_noise(min_corner + Vector::unit_y() + Vector::unit_z())
+                        .lerp(
+                            self._raw_noise(min_corner + 1),
+                            position.x() - min_corner.x() as f64,
+                        ),
+                    position.y() - min_corner.y() as f64,
+                ),
                 position.z() - min_corner.z() as f64,
             ),
             _ => panic!(
@@ -101,9 +107,12 @@ impl<const DIMENSIONS: usize> Noise<DIMENSIONS> {
         // For each level beyond 0:
         for idx in 1..self.levels {
             // Divide the position by the level's scale factor which is calculated from self.smoothness, plus a random offset
-            position = position / (1.0 + self.smoothness) + (idx as u64, self.seed).into_random::<f64>() * 111098765.4321;
+            position = position / (1.0 + self.smoothness)
+                + (idx as u64, self.seed).into_random::<f64>() * 111098765.4321;
             // Calculate the strength for this level
-            let this_strength = self.detail_strength.lerp(1.0, idx as f64 / self.levels as f64);
+            let this_strength = self
+                .detail_strength
+                .lerp(1.0, idx as f64 / self.levels as f64);
             // Add the sample weighted by the level's strength to the total sum
             sum += self._raw_noise_smooth(position) * this_strength;
             // Add the level's strength to the total strength
