@@ -189,12 +189,12 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
     }
 
     /// Map a function over the matrix or vector's components to build a new matrix
-    pub fn map(&self, f: impl Fn(&T) -> T) -> Self {
-        Self {
-            rows: init_array!([Row<T, COLUMNS>; ROWS], |row_idx| {
+    pub fn map<U: Copy + Zero + One>(&self, f: impl Fn(&T) -> U) -> Matrix<U, ROWS, COLUMNS> {
+        Matrix {
+            rows: init_array!([Row<U, COLUMNS>; ROWS], |row_idx| {
                 let row: &Row<T, COLUMNS> = &self.rows[row_idx];
                 Row {
-                    data: init_array!([T; COLUMNS], |column_idx| f(&row.const_column(column_idx))),
+                    data: init_array!([U; COLUMNS], |column_idx| f(&row.const_column(column_idx))),
                 }
             }),
         }
