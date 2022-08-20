@@ -6,7 +6,7 @@ use std::{
     ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub},
 };
 
-use num_traits::{Float, One, Zero};
+use num_traits::{Float, One, Zero, NumCast, ToPrimitive};
 
 use crate::{
     float_ext::FloatExt, init_array, quaternion::Quaternion, vector, vector_alias::Vector,
@@ -601,6 +601,24 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
         row.data[1] = z * y * one_minus_cos + x * sin;
         row.data[2] = z * z * one_minus_cos + cos;
         matrix
+    }
+
+    /// Convert another type of matrix to this type of matrix.
+    pub fn convert_from<U: Copy + Zero + One + ToPrimitive>(v: &Matrix<U, ROWS, COLUMNS>) -> Option<Self>
+    where T: NumCast
+    {
+        Some(Self::new(init_array!(Option<[[T; COLUMNS]; ROWS]>, |row_idx| {
+            init_array!(Option<[T; COLUMNS]>, |column_idx| {
+                T::from(v.as_row(row_idx).unwrap().const_column(column_idx))
+            })
+        })?))
+    }
+
+    /// Convert this type of matrix to another type of matrix.
+    pub fn convert_to<U: Copy + Zero + One + NumCast>(&self) -> Option<Matrix<U, ROWS, COLUMNS>>
+    where T: ToPrimitive
+    {
+        Matrix::<U, ROWS, COLUMNS>::convert_from(self)
     }
 }
 
