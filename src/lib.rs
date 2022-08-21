@@ -82,15 +82,10 @@ mod tests {
 
         #[test]
         fn rotation() {
-            let unit_x: Vector4<f64> = Vector4::unit_x();
-            let rotation =
-                Matrix3x3::from(Quaternion::from_rotation_y(std::f64::consts::TAU * 0.125));
-            let rotated = unit_x.and_then(&rotation).xyz();
-            assert!(
-                (rotated.x() - 2.0f64.sqrt() * 0.5).abs() < 0.000001
-                    && rotated.y().abs() < 0.000001
-                    && (rotated.z() + 2.0f64.sqrt() * 0.5).abs() < 0.000001
-            );
+            let unit_x: Vector3<f64> = Vector3::unit_x();
+            let rotation = Quaternion::from_rotation_y(std::f64::consts::PI * 0.5);
+            let rotated = unit_x.rotated_by(&rotation);
+            assert!((rotated - Vector3::unit_z()).length() < 0.000001);
         }
     }
 

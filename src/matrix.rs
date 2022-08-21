@@ -257,24 +257,32 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
     {
         if COLUMNS < OTHER_ROWS {
             panic!("Matrix::and_then: left hand matrix must have equal or greater columns to the right hand matrix's rows");
-        } else {
-            Self {
-                rows: init_array!([Row<T, COLUMNS>; ROWS], |row_idx| {
-                    Row {
-                        data: init_array!([T; COLUMNS], |column_idx| {
-                            (0..OTHER_ROWS)
-                                .map(|i| {
-                                    identity::<&Row<T, COLUMNS>>(&self.rows[row_idx])
-                                        .const_column(i)
-                                        * identity::<&Row<T, OTHER_COLUMNS>>(&other.rows[i])
-                                            .const_column(column_idx)
-                                })
-                                .sum()
-                        }),
-                    }
-                }),
-            }
         }
+        if COLUMNS != OTHER_COLUMNS {
+            panic!("Matrix::and_then: left hand matrix must have equal columns to the right hand matrix's columns");
+        }
+        Self {
+            rows: init_array!([Row<T, COLUMNS>; ROWS], |row_idx| {
+                Row {
+                    data: init_array!([T; COLUMNS], |column_idx| {
+                        (0..OTHER_ROWS)
+                            .map(|i| {
+                                identity::<&Row<T, COLUMNS>>(&self.rows[row_idx])
+                                    .const_column(i)
+                                    * identity::<&Row<T, OTHER_COLUMNS>>(&other.rows[i])
+                                        .const_column(column_idx)
+                            })
+                            .sum()
+                    }),
+                }
+            }),
+        }
+    }
+
+    pub fn rotated_by(&self, rotation: &Quaternion<T>) -> Self
+    where T: Float + Sum + 'static,
+    {
+        self.and_then(&Matrix3x3::new_rotation(rotation))
     }
 
     pub const fn as_size<const NEW_ROWS: usize, const NEW_COLUMNS: usize>(
@@ -964,7 +972,7 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         if COLUMNS < 3 {
             panic!("Vector cannot have a Z component");
         }
-        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 1 {
+        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 2 {
             T::one()
         } else {
             T::zero()
@@ -976,7 +984,7 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         if COLUMNS < 4 {
             panic!("Vector cannot have a Z component");
         }
-        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 1 {
+        Self::new([init_array!([T; COLUMNS], |column_idx| if column_idx == 3 {
             T::one()
         } else {
             T::zero()

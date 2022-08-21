@@ -8,7 +8,7 @@ use num_traits::Float;
 use crate::{
     float_ext::FloatExt,
     vector,
-    vector_alias::{Vector, Vector3, Vector4},
+    vector_alias::{Vector, Vector3, Vector4}, prelude::Matrix3x3,
 };
 
 #[repr(C)]
@@ -200,6 +200,14 @@ impl<T: Float> Quaternion<T> {
             a.w() * b.w() - dot,
         )
         .into()
+    }
+
+    /// Convert the rotation quaternion to a rotation matrix
+    pub fn to_matrix(self) -> Matrix3x3<T>
+    where
+        T: Sum + 'static,
+    {
+        Matrix3x3::from(self)
     }
 }
 
