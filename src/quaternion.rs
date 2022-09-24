@@ -7,8 +7,9 @@ use num_traits::Float;
 
 use crate::{
     float_ext::FloatExt,
+    prelude::Matrix3x3,
     vector,
-    vector_alias::{Vector, Vector3, Vector4}, prelude::Matrix3x3,
+    vector_alias::{Vector, Vector3, Vector4},
 };
 
 #[repr(C)]

@@ -6,10 +6,11 @@ use std::{
     ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub},
 };
 
-use num_traits::{Float, One, Zero, NumCast, ToPrimitive};
+use num_traits::{real::Real, Float, NumCast, One, ToPrimitive, Zero};
 
 use crate::{
-    float_ext::FloatExt, init_array, quaternion::Quaternion, vector, vector_alias::Vector,
+    float_ext::FloatExt, geometry::Axis, init_array, quaternion::Quaternion, vector,
+    vector_alias::Vector,
 };
 
 #[repr(C)]
@@ -267,8 +268,7 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
                     data: init_array!([T; COLUMNS], |column_idx| {
                         (0..OTHER_ROWS)
                             .map(|i| {
-                                identity::<&Row<T, COLUMNS>>(&self.rows[row_idx])
-                                    .const_column(i)
+                                identity::<&Row<T, COLUMNS>>(&self.rows[row_idx]).const_column(i)
                                     * identity::<&Row<T, OTHER_COLUMNS>>(&other.rows[i])
                                         .const_column(column_idx)
                             })
@@ -280,7 +280,8 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
     }
 
     pub fn rotated_by(&self, rotation: &Quaternion<T>) -> Self
-    where T: Float + Sum + 'static,
+    where
+        T: Float + Sum + 'static,
     {
         self.and_then(&Matrix3x3::new_rotation(rotation))
     }
@@ -612,21 +613,58 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
     }
 
     /// Convert another type of matrix to this type of matrix.
-    pub fn convert_from<U: Copy + Zero + One + ToPrimitive>(v: &Matrix<U, ROWS, COLUMNS>) -> Option<Self>
-    where T: NumCast
+    pub fn convert_from<U: Copy + Zero + One + ToPrimitive>(
+        v: &Matrix<U, ROWS, COLUMNS>,
+    ) -> Option<Self>
+    where
+        T: NumCast,
     {
-        Some(Self::new(init_array!(Option<[[T; COLUMNS]; ROWS]>, |row_idx| {
-            init_array!(Option<[T; COLUMNS]>, |column_idx| {
-                T::from(v.as_row(row_idx).unwrap().const_column(column_idx))
-            })
-        })?))
+        Some(Self::new(init_array!(
+            Option<[[T; COLUMNS]; ROWS]>,
+            |row_idx| {
+                init_array!(Option<[T; COLUMNS]>, |column_idx| {
+                    T::from(v.as_row(row_idx).unwrap().const_column(column_idx))
+                })
+            }
+        )?))
     }
 
     /// Convert this type of matrix to another type of matrix.
     pub fn convert_to<U: Copy + Zero + One + NumCast>(&self) -> Option<Matrix<U, ROWS, COLUMNS>>
-    where T: ToPrimitive
+    where
+        T: ToPrimitive,
     {
         Matrix::<U, ROWS, COLUMNS>::convert_from(self)
+    }
+
+    /// Compare two matrices and get the minimum value for each component
+    pub fn min(self, other: Self) -> Self
+    where
+        T: Real,
+    {
+        Self::new(init_array!([[T; COLUMNS]; ROWS], |row_idx| {
+            init_array!([T; COLUMNS], |column_idx| {
+                self.as_row(row_idx)
+                    .unwrap()
+                    .const_column(column_idx)
+                    .min(other.as_row(row_idx).unwrap().const_column(column_idx))
+            })
+        }))
+    }
+
+    /// Compare two matrices and get the maximum value for each component
+    pub fn max(self, other: Self) -> Self
+    where
+        T: Real,
+    {
+        Self::new(init_array!([[T; COLUMNS]; ROWS], |row_idx| {
+            init_array!([T; COLUMNS], |column_idx| {
+                self.as_row(row_idx)
+                    .unwrap()
+                    .const_column(column_idx)
+                    .max(other.as_row(row_idx).unwrap().const_column(column_idx))
+            })
+        }))
     }
 }
 
@@ -673,7 +711,7 @@ impl<T: Copy + Float> Matrix<T, 4, 4> {
             if size.x() <= T::zero() || size.y() <= T::zero() {
                 panic!("Invalid size");
             }
-            if near <= T::zero() || near >= far {
+            if near >= far {
                 panic!("Invalid near/far planes");
             }
         }
@@ -755,6 +793,17 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         }
     }
 
+    // Create a vector from the given iterator.
+    // Panics if the iterator does not yield `COLUMNS` elements
+    pub fn from_iter(iter: impl IntoIterator<Item = T>) -> Self {
+        let mut iter = iter.into_iter();
+        Self {
+            rows: [Row {
+                data: init_array!([T; COLUMNS], mut |_| iter.next().expect("Iterator did not yield enough elements")),
+            }],
+        }
+    }
+
     /// Get an immutable reference to the nth component of the vector
     pub const fn component(&self, n: usize) -> Option<&T> {
         self.rows[0].as_column(n)
@@ -763,6 +812,16 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
     /// Get a mutable reference to the nth component of the vector
     pub const fn component_mut(&mut self, n: usize) -> Option<&mut T> {
         self.rows[0].as_column_mut(n)
+    }
+
+    /// Set the nth component of the vector to the given value
+    pub const fn set_component(&mut self, n: usize, value: T) -> Option<()> {
+        if let Some(component) = self.component_mut(n) {
+            *component = value;
+            Some(())
+        } else {
+            None
+        }
     }
 
     /// Create a new vector from this vector's components
@@ -914,9 +973,19 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         &self.rows[0].data
     }
 
+    /// Get the vector's components as a mutable slice
+    pub const fn as_slice_mut(&mut self) -> &mut [T] {
+        &mut self.rows[0].data
+    }
+
     /// Get the vector's components as a reference to an array
     pub const fn as_array(&self) -> &[T; COLUMNS] {
         &self.rows[0].data
+    }
+
+    /// Get the vector's components as a mutable reference to an array
+    pub const fn as_array_mut(&mut self) -> &mut [T; COLUMNS] {
+        &mut self.rows[0].data
     }
 
     /// Use a 'right' and 'up' vector to calculate the 'forward' vector
@@ -989,6 +1058,55 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         } else {
             T::zero()
         })])
+    }
+
+    /// Create a new vector with the given component axes removed.
+    /// Panics if there are duplicate axes in `removed_components`.
+    pub fn remove<const NEW_COLUMNS: usize>(
+        &self,
+        removed_axes: &[Axis; COLUMNS - NEW_COLUMNS],
+    ) -> Vector<T, NEW_COLUMNS>
+    where
+        T: Copy,
+    {
+        // Check for duplicate indices
+        for (i, removed_component) in removed_axes.iter().enumerate() {
+            for removed_component2 in removed_axes.iter().skip(i + 1) {
+                if removed_component == removed_component2 {
+                    panic!(
+                        "Component axis {:?} was provided more than once",
+                        removed_component
+                    );
+                }
+            }
+        }
+
+        self.remove_unchecked(removed_axes)
+    }
+
+    /// Create a new vector with the given component axes removed.
+    /// Does not check for duplicate axes in `removed_components`.
+    /// This is not strictly unsafe, but may have unexpected results if there are duplicate axes.
+    pub fn remove_unchecked<const NEW_COLUMNS: usize>(
+        &self,
+        removed_axes: &[Axis; COLUMNS - NEW_COLUMNS],
+    ) -> Vector<T, NEW_COLUMNS>
+    where
+        T: Copy,
+    {
+        let removed_axes = init_array!([usize; COLUMNS - NEW_COLUMNS], |i| identity::<Axis>(
+            removed_axes[i]
+        )
+        .dimension_number());
+
+        // Create a new vector with the given components removed
+        Vector::from_iter(
+            self.as_slice()
+                .iter()
+                .enumerate()
+                .filter(|(idx, _)| !removed_axes.contains(idx))
+                .map(|(_, component)| *component),
+        )
     }
 }
 

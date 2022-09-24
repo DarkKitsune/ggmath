@@ -13,6 +13,7 @@
 #![feature(const_result)]
 
 pub mod float_ext;
+pub mod geometry;
 pub(crate) mod init_array;
 pub mod matrix;
 pub mod noise;

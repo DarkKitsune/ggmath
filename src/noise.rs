@@ -112,7 +112,7 @@ impl<const DIMENSIONS: usize> Noise<DIMENSIONS> {
             // Calculate the strength for this level
             let this_strength = self
                 .detail_strength
-                .lerp(1.0, idx as f64 / self.levels as f64);
+                .lerp(1.0, (idx as f64 / self.levels as f64).squared());
             // Add the sample weighted by the level's strength to the total sum
             sum += self._raw_noise_smooth(position) * this_strength;
             // Add the level's strength to the total strength

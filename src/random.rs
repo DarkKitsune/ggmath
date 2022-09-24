@@ -64,7 +64,7 @@ impl<const DIMENSIONS: usize> NormalLcg<DIMENSIONS> {
     }
 
     pub fn next_f32(&mut self) -> f32 {
-        0.5 + self.next_f64() as f32
+        self.next_f64() as f32
     }
 
     pub fn next_normal_f32(&mut self) -> Vector<f32, DIMENSIONS> {
