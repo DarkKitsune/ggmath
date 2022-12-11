@@ -1,4 +1,4 @@
-use num_traits::{One, Zero};
+use num::traits::{One, Zero};
 
 use crate::{init_array, prelude::Vector};
 

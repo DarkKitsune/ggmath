@@ -3,7 +3,7 @@ use std::{
     ops::{Mul, MulAssign},
 };
 
-use num_traits::Float;
+use num::traits::Float;
 
 use crate::{
     float_ext::FloatExt,

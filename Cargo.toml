@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 paste = "1.0.7"
-num-traits = "0.2.14"
+num = "0.4"
 image = "0.24.3"
 itertools = "0.10.3"

@@ -21,6 +21,7 @@ pub mod prelude;
 pub mod quaternion;
 pub mod random;
 pub mod vector_alias;
+pub mod fraction;
 
 #[cfg(test)]
 mod tests {
@@ -148,6 +149,32 @@ mod tests {
 
             // Save image
             image.save("noise.png").unwrap();
+        }
+    }
+
+    mod fraction_tests {
+        use crate::prelude::*;
+
+        #[test]
+        fn fraction() {
+            let a = Fraction::new(1, 2);
+            let b = Fraction::new(1, 3);
+            assert_eq!(a + b, Fraction::new(5, 6));
+            assert_eq!(a - b, Fraction::new(1, 6));
+            assert_eq!(a * b, Fraction::new(1, 6));
+            assert_eq!(a / b, Fraction::new(3, 2));
+            assert_eq!(Fraction::new(1, 2) - Fraction::new(2, 3), Fraction::new(-1, 6));
+            assert!((Fraction::new(1, 2) - Fraction::new(2, 3)).is_negative());
+            assert!((Fraction::new(1, 2) + Fraction::new(2, 3)).approximate::<f64>().unwrap() - 1.16666666667 < 0.00000000001);
+            assert!(Fraction::new(1, 2) < Fraction::new(2, 3));
+        }
+
+        #[test]
+        fn undefined() {
+            let a = Fraction::new(1, 0);
+            assert!(a.is_undefined());
+            assert!((a + 1).is_undefined());
+            assert!((a - Fraction::new(1, 2)).is_undefined());
         }
     }
 }

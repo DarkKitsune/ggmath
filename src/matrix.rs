@@ -6,7 +6,7 @@ use std::{
     ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub},
 };
 
-use num_traits::{real::Real, Float, NumCast, One, ToPrimitive, Zero};
+use num::traits::{real::Real, Float, NumCast, One, ToPrimitive, Zero};
 
 use crate::{
     float_ext::FloatExt, geometry::Axis, init_array, quaternion::Quaternion, vector,

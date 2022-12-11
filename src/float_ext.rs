@@ -1,4 +1,4 @@
-use num_traits::Float;
+use num::traits::Float;
 
 /// A trait that provides extra functions for floating point types
 pub trait FloatExt: Float {

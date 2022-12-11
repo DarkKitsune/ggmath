@@ -1,6 +1,6 @@
 use std::{iter::Sum, mem::swap, ops::Sub};
 
-use num_traits::*;
+use num::traits::*;
 
 use crate::prelude::*;
 
