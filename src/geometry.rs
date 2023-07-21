@@ -13,12 +13,16 @@ pub struct NBox<T: Copy + Zero + One, const DIMENSIONS: usize> {
 
 impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     pub fn from_corners(mut min: Vector<T, DIMENSIONS>, mut max: Vector<T, DIMENSIONS>) -> Self
-    where T: PartialOrd,
+    where
+        T: PartialOrd,
     {
         // Ensure that min is less than max
         for idx in 0..DIMENSIONS {
             if min.component(idx).unwrap() > max.component(idx).unwrap() {
-                swap(min.component_mut(idx).unwrap(), max.component_mut(idx).unwrap());
+                swap(
+                    min.component_mut(idx).unwrap(),
+                    max.component_mut(idx).unwrap(),
+                );
             }
         }
         Self { min, max }
@@ -36,7 +40,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
 
     /// Returns the center of the box.
     pub fn center(&self) -> Vector<T, DIMENSIONS>
-    where T: Float + 'static
+    where
+        T: Float + 'static,
     {
         (self.min + self.max) / T::two()
     }
@@ -44,25 +49,31 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     /// Returns the center of the box. Works for integer types.
     /// The result is rounded towards zero.
     pub fn center_int(&self) -> Vector<T, DIMENSIONS>
-    where T: PrimInt + 'static
+    where
+        T: PrimInt + 'static,
     {
         (self.min + self.max) / (T::one() + T::one())
     }
 
     /// Returns the size of the box.
     pub fn size(&self) -> Vector<T, DIMENSIONS>
-    where T: Sub<Output = T> + 'static
+    where
+        T: Sub<Output = T> + 'static,
     {
         self.max - self.min
     }
-    
+
     /// Ensures that the minimum corner is less than the maximum corner.
     fn normalize(&mut self)
-    where T: PartialOrd,
+    where
+        T: PartialOrd,
     {
         for idx in 0..DIMENSIONS {
             if self.min.component(idx).unwrap() > self.max.component(idx).unwrap() {
-                swap(self.min.component_mut(idx).unwrap(), self.max.component_mut(idx).unwrap());
+                swap(
+                    self.min.component_mut(idx).unwrap(),
+                    self.max.component_mut(idx).unwrap(),
+                );
             }
         }
     }
@@ -70,7 +81,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     /// Sets the minimum corner of the box.
     /// Will swap the corners if the new minimum is greater than the maximum.
     pub fn set_min(&mut self, min: Vector<T, DIMENSIONS>)
-    where T: PartialOrd,
+    where
+        T: PartialOrd,
     {
         self.min = min;
         self.normalize();
@@ -79,7 +91,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     /// Sets the maximum corner of the box.
     /// Will swap the corners if the new maximum is less than the minimum.
     pub fn set_max(&mut self, max: Vector<T, DIMENSIONS>)
-    where T: PartialOrd,
+    where
+        T: PartialOrd,
     {
         self.max = max;
         self.normalize();
@@ -88,7 +101,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     /// Sets the center of the box.
     /// Will not change the size of the box.
     pub fn set_center(&mut self, center: Vector<T, DIMENSIONS>)
-    where T: Float + 'static
+    where
+        T: Float + 'static,
     {
         let half_size = self.size() / T::two();
         self.min = center - half_size;
@@ -98,7 +112,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     /// Sets the center of the box; doesn't require the box to be constructed from floating points.
     /// Will not change the size of the box.
     pub fn set_center_int(&mut self, center: Vector<T, DIMENSIONS>)
-    where T: PrimInt + 'static
+    where
+        T: PrimInt + 'static,
     {
         let old_center = self.center_int();
         let offset = center - old_center;
@@ -110,7 +125,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     /// Will not change the center of the box.
     /// If the size is negative, it will be treated as positive.
     pub fn set_size(&mut self, size: Vector<T, DIMENSIONS>)
-    where T: Float + 'static
+    where
+        T: Float + 'static,
     {
         let size = size.map(|x| x.abs());
         let center = self.center();
@@ -126,7 +142,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     /// If the size is even, the minimum corner will be the one that is closer to the center.
     /// The result is rounded towards zero.
     pub fn set_size_int(&mut self, size: Vector<T, DIMENSIONS>)
-    where T: PrimInt + Sub<Output = T> + Signed + 'static
+    where
+        T: PrimInt + Sub<Output = T> + Signed + 'static,
     {
         let size = size.map(|x| x.abs());
         let center = self.center_int();
@@ -138,11 +155,12 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NBox<T, DIMENSIONS> {
     /// Returns true if the box contains the given point.
     /// The box is considered to contain the point if the point is on the edge of the box.
     pub fn contains(&self, point: Vector<T, DIMENSIONS>) -> bool
-    where T: PartialOrd,
+    where
+        T: PartialOrd,
     {
         for idx in 0..DIMENSIONS {
-            if point.component(idx).unwrap() < self.min.component(idx).unwrap() ||
-                point.component(idx).unwrap() > self.max.component(idx).unwrap()
+            if point.component(idx).unwrap() < self.min.component(idx).unwrap()
+                || point.component(idx).unwrap() > self.max.component(idx).unwrap()
             {
                 return false;
             }
@@ -176,21 +194,24 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NLineSegment<T, DIMENSIONS> 
 
     /// Returns the length of the line segment.
     pub fn length(&self) -> T
-    where T: Float + Sum + 'static
+    where
+        T: Float + Sum + 'static,
     {
         (self.end - self.start).length()
     }
 
     /// Returns the squared length of the line segment.
     pub fn length_squared(&self) -> T
-    where T: PrimInt + Sum + 'static
+    where
+        T: PrimInt + Sum + 'static,
     {
         (self.end - self.start).length_squared()
     }
 
     /// Returns the center of the line segment.
     pub fn center(&self) -> Vector<T, DIMENSIONS>
-    where T: Float + 'static
+    where
+        T: Float + 'static,
     {
         (self.start + self.end) / T::two()
     }
@@ -198,7 +219,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NLineSegment<T, DIMENSIONS> 
     /// Returns the center of the line segment; doesn't require the line segment to be constructed from floating points.
     /// The result is rounded towards zero.
     pub fn center_int(&self) -> Vector<T, DIMENSIONS>
-    where T: PrimInt + 'static
+    where
+        T: PrimInt + 'static,
     {
         (self.start + self.end) / (T::one() + T::one())
     }
@@ -207,7 +229,8 @@ impl<T: Copy + Zero + One, const DIMENSIONS: usize> NLineSegment<T, DIMENSIONS> 
     /// The direction is a normalized vector pointing from the start to the end of the line segment.
     /// Returns None if the line segment has zero length.
     pub fn direction(&self) -> Option<Vector<T, DIMENSIONS>>
-    where T: Float + Sum + 'static
+    where
+        T: Float + Sum + 'static,
     {
         let direction = self.end - self.start;
         if direction.length_squared().is_zero() {

@@ -13,6 +13,7 @@
 #![feature(const_result)]
 
 pub mod float_ext;
+pub mod fraction;
 pub mod geometry;
 pub(crate) mod init_array;
 pub mod matrix;
@@ -21,7 +22,6 @@ pub mod prelude;
 pub mod quaternion;
 pub mod random;
 pub mod vector_alias;
-pub mod fraction;
 
 #[cfg(test)]
 mod tests {
@@ -163,9 +163,18 @@ mod tests {
             assert_eq!(a - b, Fraction::new(1, 6));
             assert_eq!(a * b, Fraction::new(1, 6));
             assert_eq!(a / b, Fraction::new(3, 2));
-            assert_eq!(Fraction::new(1, 2) - Fraction::new(2, 3), Fraction::new(-1, 6));
+            assert_eq!(
+                Fraction::new(1, 2) - Fraction::new(2, 3),
+                Fraction::new(-1, 6)
+            );
             assert!((Fraction::new(1, 2) - Fraction::new(2, 3)).is_negative());
-            assert!((Fraction::new(1, 2) + Fraction::new(2, 3)).approximate::<f64>().unwrap() - 1.16666666667 < 0.00000000001);
+            assert!(
+                (Fraction::new(1, 2) + Fraction::new(2, 3))
+                    .approximate::<f64>()
+                    .unwrap()
+                    - 1.16666666667
+                    < 0.00000000001
+            );
             assert!(Fraction::new(1, 2) < Fraction::new(2, 3));
         }
 
