@@ -35,12 +35,20 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Row<T, COLUMNS> {
 
     /// Returns a reference to the `column`th column of this row.
     pub const fn as_column(&self, column: usize) -> Option<&T> {
-        self.data.get(column)
+        if column < COLUMNS {
+            Some(&self.data[column])
+        } else {
+            None
+        }
     }
 
     /// Returns a mutable reference to the `column`th column of this row.
     pub const fn as_column_mut(&mut self, column: usize) -> Option<&mut T> {
-        self.data.get_mut(column)
+        if column < COLUMNS {
+            Some(&mut self.data[column])
+        } else {
+            None
+        }
     }
 
     /// Returns a copy of the `column`th column of this row.
@@ -50,7 +58,7 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Row<T, COLUMNS> {
 
     /// Returns a copy of the `column`th column of this row.
     pub const fn const_column(&self, column: usize) -> T {
-        *self.data.get(column).expect("Invalid column")
+        self.data[column]
     }
 }
 
@@ -64,15 +72,13 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Index<usize> for Row<T, COLUMNS
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
-        self.as_column(index)
-            .unwrap_or_else(|| panic!("No column {} in matrix", index))
+        self.as_column(index).expect("Invalid column")
     }
 }
 
 impl<T: Copy + Zero + One, const COLUMNS: usize> IndexMut<usize> for Row<T, COLUMNS> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.as_column_mut(index)
-            .unwrap_or_else(|| panic!("No column {} in matrix", index))
+        self.as_column_mut(index).expect("Invalid column")
     }
 }
 
@@ -322,19 +328,19 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
 // All matrices & vectors
 impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, ROWS, COLUMNS> {
     /// Get an immutable reference to a row in the matrix
-    pub const fn as_row(&self, n: usize) -> Option<&Row<T, COLUMNS>> {
-        self.rows.get(n)
+    pub const fn as_row(&self, n: usize) -> &Row<T, COLUMNS> {
+        &self.rows[n]
     }
 
     /// Get a mutable reference to a row in the matrix
-    pub const fn as_row_mut(&mut self, n: usize) -> Option<&mut Row<T, COLUMNS>> {
-        self.rows.get_mut(n)
+    pub const fn as_row_mut(&mut self, n: usize) -> &mut Row<T, COLUMNS> {
+        &mut self.rows[n]
     }
 
     /// Get a copy of a row in the matrix
     pub const fn row(&self, n: usize) -> Vector<T, COLUMNS> {
         Vector {
-            rows: [*self.as_row(n).expect("Invalid row")],
+            rows: [*self.as_row(n)],
         }
     }
 
@@ -357,17 +363,17 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
         let right = Vector::derive_right(forward, up);
         let forward = Vector::derive_forward(&right, up);
         // Set X row
-        let row = matrix.as_row_mut(0).unwrap();
+        let row = matrix.as_row_mut(0);
         row.data[0] = right.x();
         row.data[1] = right.y();
         row.data[2] = right.z();
         // Set Y row
-        let row = matrix.as_row_mut(1).unwrap();
+        let row = matrix.as_row_mut(1);
         row.data[0] = up.x();
         row.data[1] = up.y();
         row.data[2] = up.z();
         // Set Z row
-        let row = matrix.as_row_mut(2).unwrap();
+        let row = matrix.as_row_mut(2);
         row.data[0] = -forward.x();
         row.data[1] = -forward.y();
         row.data[2] = -forward.z();
@@ -559,7 +565,7 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
             }
         }
         let mut matrix = Self::identity();
-        let translation_row = matrix.as_row_mut(ROWS - 1).unwrap();
+        let translation_row = matrix.as_row_mut(ROWS - 1);
         translation_row.data[0] = translation.x();
         translation_row.data[1] = translation.y();
         translation_row.data[2] = translation.z();
@@ -597,15 +603,15 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
         let x = axis.x();
         let y = axis.y();
         let z = axis.z();
-        let row = matrix.as_row_mut(0).unwrap();
+        let row = matrix.as_row_mut(0);
         row.data[0] = x * x * one_minus_cos + cos;
         row.data[1] = x * y * one_minus_cos - z * sin;
         row.data[2] = x * z * one_minus_cos + y * sin;
-        let row = matrix.as_row_mut(1).unwrap();
+        let row = matrix.as_row_mut(1);
         row.data[0] = y * x * one_minus_cos + z * sin;
         row.data[1] = y * y * one_minus_cos + cos;
         row.data[2] = y * z * one_minus_cos - x * sin;
-        let row = matrix.as_row_mut(2).unwrap();
+        let row = matrix.as_row_mut(2);
         row.data[0] = z * x * one_minus_cos - y * sin;
         row.data[1] = z * y * one_minus_cos + x * sin;
         row.data[2] = z * z * one_minus_cos + cos;
@@ -623,7 +629,7 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
             Option<[[T; COLUMNS]; ROWS]>,
             |row_idx| {
                 init_array!(Option<[T; COLUMNS]>, |column_idx| {
-                    T::from(v.as_row(row_idx).unwrap().const_column(column_idx))
+                    T::from(v.as_row(row_idx).const_column(column_idx))
                 })
             }
         )?))
@@ -645,9 +651,8 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
         Self::new(init_array!([[T; COLUMNS]; ROWS], |row_idx| {
             init_array!([T; COLUMNS], |column_idx| {
                 self.as_row(row_idx)
-                    .unwrap()
                     .const_column(column_idx)
-                    .min(other.as_row(row_idx).unwrap().const_column(column_idx))
+                    .min(other.as_row(row_idx).const_column(column_idx))
             })
         }))
     }
@@ -660,9 +665,8 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
         Self::new(init_array!([[T; COLUMNS]; ROWS], |row_idx| {
             init_array!([T; COLUMNS], |column_idx| {
                 self.as_row(row_idx)
-                    .unwrap()
                     .const_column(column_idx)
-                    .max(other.as_row(row_idx).unwrap().const_column(column_idx))
+                    .max(other.as_row(row_idx).const_column(column_idx))
             })
         }))
     }
@@ -720,7 +724,7 @@ impl<T: Copy + Float> Matrix<T, 4, 4> {
         let z_range = near - far;
         let z_scale = T::one() / z_range;
         let mut matrix = Self::new_scale(&vector!(x_scale, y_scale, z_scale));
-        matrix.as_row_mut(3).unwrap().data[2] = near / z_range;
+        matrix.as_row_mut(3).data[2] = near / z_range;
         matrix
     }
 
@@ -744,22 +748,22 @@ impl<T: Copy + Float> Matrix<T, 4, 4> {
         let x = up.cross(&z).normalized();
         let y = z.cross(&x);
         // Set X row
-        let row = matrix.as_row_mut(0).unwrap();
+        let row = matrix.as_row_mut(0);
         row.data[0] = x.x();
         row.data[1] = y.x();
         row.data[2] = z.x();
         // Set Y row
-        let row = matrix.as_row_mut(1).unwrap();
+        let row = matrix.as_row_mut(1);
         row.data[0] = x.y();
         row.data[1] = y.y();
         row.data[2] = z.y();
         // Set Z row
-        let row = matrix.as_row_mut(2).unwrap();
+        let row = matrix.as_row_mut(2);
         row.data[0] = x.z();
         row.data[1] = y.z();
         row.data[2] = z.z();
         // Set translation row
-        let row = matrix.as_row_mut(3).unwrap();
+        let row = matrix.as_row_mut(3);
         row.data[0] = -position.dot(&x);
         row.data[1] = -position.dot(&y);
         row.data[2] = -position.dot(&z);
@@ -916,34 +920,26 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
 
     /// Get the X component of the vector
     pub const fn x(&self) -> T {
-        *self.rows[0]
-            .data
-            .get(0)
-            .expect("Vector does not have an X component")
+        self.rows[0]
+            .data[0]
     }
 
     /// Get the Y component of the vector
     pub const fn y(&self) -> T {
-        *self.rows[0]
-            .data
-            .get(1)
-            .expect("Vector does not have a Y component")
+        self.rows[0]
+            .data[1]
     }
 
     /// Get the Z component of the vector
     pub const fn z(&self) -> T {
-        *self.rows[0]
-            .data
-            .get(2)
-            .expect("Vector does not have a Z component")
+        self.rows[0]
+            .data[2]
     }
 
     /// Get the W component of the vector
     pub const fn w(&self) -> T {
-        *self.rows[0]
-            .data
-            .get(3)
-            .expect("Vector does not have a W component")
+        self.rows[0]
+            .data[3]
     }
 
     /// Concatenate two vectors

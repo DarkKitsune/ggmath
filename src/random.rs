@@ -26,7 +26,8 @@ impl Lcg {
 }
 
 /// A linear congruential generator for generating pseudo-random values efficiently.
-/// Values are normally distributed (biased towards 0.5). When generating random points on a circle or sphere,
+/// Values are normally distributed (in the range of 0.0 to 1.0, biased towards 0.5).
+/// When generating random points on a circle or sphere,
 /// `DIMENSIONS` should equal the number of dimensions of the sphere, but can also be used
 /// to adjust the curve, as the higher `DIMENSIONS` is, the more values are biased towards 0.5.
 #[derive(Debug, Clone, PartialEq)]

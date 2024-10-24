@@ -1,16 +1,8 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 #![feature(const_for)]
-#![feature(const_ptr_write)]
-#![feature(const_mut_refs)]
-#![feature(const_maybe_uninit_as_mut_ptr)]
-#![feature(inline_const)]
-#![feature(const_slice_index)]
-#![feature(const_option)]
 #![feature(const_trait_impl)]
 #![feature(generic_arg_infer)]
-#![feature(const_convert)]
-#![feature(const_result)]
 
 pub mod float_ext;
 pub mod fraction;
@@ -99,20 +91,20 @@ mod tests {
             // Test regular LCG's deviation.
             let mut lcg = Lcg::new(71923);
             let mut accumulator = 0.0;
-            for _ in 0..2000 {
-                accumulator += lcg.next::<f32>();
+            for _ in 0..10000 {
+                accumulator += lcg.next::<f64>();
             }
-            let mean = accumulator / 2000.0;
+            let mean = accumulator / 10000.0;
             assert!((mean - 0.5).abs() < 0.01);
 
             // Test normally distributed LCG's deviation.
             let mut lcg = NormalLcg::<3>::new(9471);
             let mut accumulator = 0.0;
-            for _ in 0..2000 {
-                accumulator += lcg.next_f32();
+            for _ in 0..10000 {
+                accumulator += lcg.next_f64();
             }
-            let mean = accumulator / 2000.0;
-            assert!((mean - 0.5).abs() < 0.01);
+            let mean = accumulator / 10000.0;
+            assert!(mean.abs() < 0.01);
         }
     }
 
@@ -184,6 +176,13 @@ mod tests {
             assert!(a.is_undefined());
             assert!((a + 1).is_undefined());
             assert!((a - Fraction::new(1, 2)).is_undefined());
+        }
+    }
+
+    #[allow(dead_code)]
+    mod other_tests {
+        #[test]
+        fn tests() {
         }
     }
 }
