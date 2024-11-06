@@ -60,6 +60,15 @@ mod tests {
             let cross = a.cross(&b);
             assert_eq!(cross, vector!(0, 0, 1));
         }
+
+        #[test]
+        fn append_and_remove() {
+            let a = vector!(1, 2, 3);
+            let a = a.append(4);
+            assert_eq!(a, vector!(1, 2, 3, 4));
+            let a = a.remove(&[2]);
+            assert_eq!(a, vector!(1, 2, 4));
+        }
     }
 
     mod matrix_tests {

@@ -9,7 +9,7 @@ use std::{
 use num::traits::{real::Real, Float, NumCast, One, ToPrimitive, Zero};
 
 use crate::{
-    float_ext::FloatExt, geometry::Axis, init_array, quaternion::Quaternion, vector,
+    float_ext::FloatExt, init_array, quaternion::Quaternion, vector,
     vector_alias::Vector,
 };
 
@@ -828,6 +828,23 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
         }
     }
 
+    /// Append an additional component to the vector
+    pub const fn append(&self, component: T) -> Vector<T, { COLUMNS + 1 }> {
+        Vector {
+            rows: [Row {
+                data: init_array!([T; COLUMNS + 1], (self, component), const Self::__append_init_fn),
+            }],
+        }
+    }
+
+    const fn __append_init_fn(column_idx: usize, this: &Self, component: T) -> T {
+        if column_idx < COLUMNS {
+            *this.component(column_idx).unwrap()
+        } else {
+            component
+        }
+    }
+
     /// Create a new vector from this vector's components
     pub const fn swizzle<const NEW_COLUMNS: usize>(
         &self,
@@ -1060,7 +1077,7 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
     /// Panics if there are duplicate axes in `removed_components`.
     pub fn remove<const NEW_COLUMNS: usize>(
         &self,
-        removed_axes: &[Axis; COLUMNS - NEW_COLUMNS],
+        removed_axes: &[usize; COLUMNS - NEW_COLUMNS],
     ) -> Vector<T, NEW_COLUMNS>
     where
         T: Copy,
@@ -1077,7 +1094,7 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
             }
         }
 
-        self.remove_unchecked(removed_axes)
+        self.remove_unchecked(&removed_axes)
     }
 
     /// Create a new vector with the given component axes removed.
@@ -1085,16 +1102,11 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
     /// This is not strictly unsafe, but may have unexpected results if there are duplicate axes.
     pub fn remove_unchecked<const NEW_COLUMNS: usize>(
         &self,
-        removed_axes: &[Axis; COLUMNS - NEW_COLUMNS],
+        removed_axes: &[usize; COLUMNS - NEW_COLUMNS],
     ) -> Vector<T, NEW_COLUMNS>
     where
         T: Copy,
     {
-        let removed_axes = init_array!([usize; COLUMNS - NEW_COLUMNS], |i| identity::<Axis>(
-            removed_axes[i]
-        )
-        .dimension_number());
-
         // Create a new vector with the given components removed
         Vector::from_iter(
             self.as_slice()

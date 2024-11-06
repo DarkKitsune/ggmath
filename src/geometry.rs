@@ -272,27 +272,6 @@ pub enum CollisionShape<T: Float + Sum, const DIMENSIONS: usize> {
     },
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
-pub enum Axis {
-    X,
-    Y,
-    Z,
-    W,
-    N(usize),
-}
-
-impl Axis {
-    pub fn dimension_number(self) -> usize {
-        match self {
-            Axis::X => 0,
-            Axis::Y => 1,
-            Axis::Z => 2,
-            Axis::W => 3,
-            Axis::N(n) => n,
-        }
-    }
-}
-
 pub trait Collide<T: Float + Sum + 'static, const DIMENSIONS: usize> {
     fn collision_shape(&self) -> CollisionShape<T, DIMENSIONS>;
 
