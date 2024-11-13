@@ -9,3 +9,5 @@ pub use crate::{
     vector,
     vector_alias::*,
 };
+
+pub use num::{Float, Num, NumCast, One, Zero};
