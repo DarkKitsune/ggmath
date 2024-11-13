@@ -10,6 +10,7 @@ pub struct Noise<const DIMENSIONS: usize> {
 }
 
 impl<const DIMENSIONS: usize> Noise<DIMENSIONS> {
+    /// Create a new noise generator with the given settings.
     pub fn new(
         seed: impl ToSeed,
         levels: usize,
@@ -97,6 +98,8 @@ impl<const DIMENSIONS: usize> Noise<DIMENSIONS> {
         }
     }
 
+    /// Sample the noise at the given position.
+    /// Returns a value between 0.0 and 1.0.
     pub fn sample_f64(&self, mut position: Vector<f64, DIMENSIONS>) -> f64 {
         // Scale the position by the scale factor an add a random offset to prevent artifacts from noise patterns
         position = position / self.scale + self.seed.into_random::<f64>() * 111098765.4321;

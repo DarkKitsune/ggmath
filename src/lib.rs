@@ -38,6 +38,8 @@ mod tests {
             assert_eq!(vector!(40, 5, -7) % 2, vector!(0, 1, -1));
 
             assert_eq!(-vector!(1, 2, 3), vector!(-1, -2, -3));
+            assert_eq!(-Vector3::<f32>::one(), vector!(-1.0; 3));
+            assert_eq!(Vector3::<f32>::zero(), vector!(0.0; 3));
         }
 
         #[test]

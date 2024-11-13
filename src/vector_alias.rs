@@ -17,4 +17,7 @@ macro_rules! vector {
     ($($component:expr),*$(,)?) => {
         $crate::vector_alias::Vector::new([[$($component),*]])
     };
+    ($component:expr; $n:expr) => {
+        $crate::vector_alias::Vector::new([[ $component; $n ]])
+    };
 }

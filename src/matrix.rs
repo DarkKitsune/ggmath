@@ -773,11 +773,11 @@ impl<T: Copy + Float> Matrix<T, 4, 4> {
 }
 
 // Vectors only
-impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
+impl<T: Copy + Zero + One, const COLUMNS: usize> Vector<T, COLUMNS> {
     /// Create a vector whose components are T::one()
     pub fn one() -> Self
     where
-        T: Float,
+        T: One,
     {
         Self::from_scalar(T::one())
     }
@@ -785,7 +785,7 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Matrix<T, 1, COLUMNS> {
     /// Create a vector whose components are T::zero()
     pub fn zero() -> Self
     where
-        T: Float,
+        T: Zero,
     {
         Self::from_scalar(T::zero())
     }
