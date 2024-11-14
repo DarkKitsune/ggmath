@@ -108,13 +108,12 @@ mod tests {
         #[test]
         fn euler_angles() {
             let rotation_a = Quaternion::from_euler_yup(0.25, 0.5, 0.75);
-            let z_axis_a = rotation_a.to_matrix().z_axis();
+            let rotated_a = Vector3::unit_z().rotated_by(&rotation_a);
             let rotation_b = Quaternion::from_rotation_z(0.25)
                 .and_then(&Quaternion::from_rotation_x(0.5))
                 .and_then(&Quaternion::from_rotation_y(0.75));
-            let z_axis_b = rotation_b.to_matrix().z_axis();
-            assert!((z_axis_a - z_axis_b).length() < 0.0001);
-
+            let rotated_b = Vector3::unit_z().rotated_by(&rotation_b);
+            assert!((rotated_a - rotated_b).length() < 0.0001);
         }
     }
 
