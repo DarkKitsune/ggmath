@@ -20,21 +20,21 @@ pub struct Quaternion<T: Float> {
 }
 
 impl<T: Float> Quaternion<T> {
-    /// Create a new quaternion
+    /// Create a new quaternion.
     pub const fn new(components: [T; 4]) -> Self {
         Self {
             components: Vector::from_components(components),
         }
     }
 
-    /// Create an identity quaternion
+    /// Create an identity quaternion.
     pub fn identity() -> Self {
         let zero = T::zero();
         let one = T::one();
         Self::new([zero, zero, zero, one])
     }
 
-    /// Create a quaternion representing a rotation around the X axis
+    /// Create a quaternion representing a rotation around the X axis.
     pub fn from_rotation_x(radians: T) -> Self {
         let zero = T::zero();
         let half_radians = radians * T::half();
@@ -43,7 +43,7 @@ impl<T: Float> Quaternion<T> {
         vector!(sin, zero, zero, cos).into()
     }
 
-    /// Create a quaternion representing a rotation around the Y axis
+    /// Create a quaternion representing a rotation around the Y axis.
     pub fn from_rotation_y(radians: T) -> Self {
         let zero = T::zero();
         let half_radians = radians * T::half();
@@ -52,7 +52,7 @@ impl<T: Float> Quaternion<T> {
         vector!(zero, sin, zero, cos).into()
     }
 
-    /// Create a quaternion representing a rotation around the Z axis
+    /// Create a quaternion representing a rotation around the Z axis.
     pub fn from_rotation_z(radians: T) -> Self {
         let zero = T::zero();
         let half_radians = radians * T::half();
@@ -61,7 +61,21 @@ impl<T: Float> Quaternion<T> {
         vector!(zero, zero, sin, cos).into()
     }
 
-    /// Create a quaternion representing a rotation around an axis
+    /// Create a quaternion from euler angles.
+    /// Assumes Y is up and Z is forward.
+    /// This is equivalent to a `roll` rotation around the Z axis,
+    /// followed by a `pitch` rotation around the X axis,
+    /// followed by a `yaw` rotation around the Y axis.
+    pub fn from_euler_yup(roll: T, pitch: T, yaw: T) -> Self
+    where
+        T: Sum,
+    {
+        Self::from_rotation_z(roll)
+            .and_then(&Self::from_rotation_x(pitch))
+            .and_then(&Self::from_rotation_y(yaw))
+    }
+
+    /// Create a quaternion representing a rotation around an axis.
     pub fn from_axis_angle(axis: &Vector3<T>, radians: T) -> Self {
         let half_radians = radians * T::half();
         let sin = half_radians.sin();
@@ -69,7 +83,7 @@ impl<T: Float> Quaternion<T> {
         vector!(axis.x() * sin, axis.y() * sin, axis.z() * sin, cos).into()
     }
 
-    /// Try to break the quaternion into a rotation around an axis (in radians)
+    /// Break the quaternion into a rotation around an axis (in radians).
     pub fn axis_angle(&self) -> (Vector3<T>, T)
     where
         T: Sum + 'static,
@@ -88,7 +102,7 @@ impl<T: Float> Quaternion<T> {
         }
     }
 
-    /// Calculate the length of the quaternion
+    /// Calculate the length of the quaternion.
     pub fn length(&self) -> T
     where
         T: Sum,
@@ -96,7 +110,7 @@ impl<T: Float> Quaternion<T> {
         self.components.length()
     }
 
-    /// Calculate the squared length of the quaternion
+    /// Calculate the squared length of the quaternion.
     pub fn length_squared(&self) -> T
     where
         T: Sum,
@@ -104,7 +118,7 @@ impl<T: Float> Quaternion<T> {
         self.components.length_squared()
     }
 
-    /// Creates a normalized copy of the quaternion
+    /// Creates a normalized copy of the quaternion.
     pub fn normalized(&self) -> Self
     where
         T: Sum + 'static,
@@ -114,8 +128,8 @@ impl<T: Float> Quaternion<T> {
         }
     }
 
-    /// Calculate the inverse of the quaternion
-    /// May panic if the quaternion has a length of zero
+    /// Calculate the inverse of the quaternion.
+    /// May panic if the quaternion has a length of zero.
     pub fn inverted(&self) -> Self
     where
         T: Sum,

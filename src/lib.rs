@@ -84,6 +84,18 @@ mod tests {
                 Matrix4x4::new([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1],])
             );
         }
+    }
+
+    mod quaternion_tests {
+        use crate::prelude::*;
+
+        #[test]
+        fn axis_angle() {
+            let rotation = Quaternion::from_axis_angle(&Vector3::unit_x(), std::f64::consts::PI * 0.5);
+            let (axis, angle) = rotation.axis_angle();
+            assert!((axis - Vector3::unit_x()).length() < 0.000001);
+            assert!((angle - std::f64::consts::PI * 0.5).abs() < 0.000001);
+        }
 
         #[test]
         fn rotation() {
@@ -91,6 +103,18 @@ mod tests {
             let rotation = Quaternion::from_rotation_y(std::f64::consts::PI * 0.5);
             let rotated = unit_x.rotated_by(&rotation);
             assert!((rotated - Vector3::unit_z()).length() < 0.000001);
+        }
+
+        #[test]
+        fn euler_angles() {
+            let rotation_a = Quaternion::from_euler_yup(0.25, 0.5, 0.75);
+            let z_axis_a = rotation_a.to_matrix().z_axis();
+            let rotation_b = Quaternion::from_rotation_z(0.25)
+                .and_then(&Quaternion::from_rotation_x(0.5))
+                .and_then(&Quaternion::from_rotation_y(0.75));
+            let z_axis_b = rotation_b.to_matrix().z_axis();
+            assert!((z_axis_a - z_axis_b).length() < 0.0001);
+
         }
     }
 
