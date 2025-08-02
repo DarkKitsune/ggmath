@@ -1165,7 +1165,7 @@ macro_rules! swizzle_count {
 }
 macro_rules! swizzles2 {
     ($(($($letter:ident),*)),*$(,)?) => {
-        paste::paste! {
+        pastey::paste! {
             $(
                 impl<T: Copy + Zero + One> Matrix<T, 1, 2> {
                     pub const fn [<$($letter)*>](&self) -> Vector<T, {swizzle_count!($($letter),*)}> {
@@ -1178,7 +1178,7 @@ macro_rules! swizzles2 {
 }
 macro_rules! swizzles3 {
     ($(($($letter:ident),*)),*$(,)?) => {
-        paste::paste! {
+        pastey::paste! {
             $(
                 impl<T: Copy + Zero + One> Matrix<T, 1, 4> {
                     pub const fn [<$($letter)*>](&self) -> Vector<T, {swizzle_count!($($letter),*)}> {

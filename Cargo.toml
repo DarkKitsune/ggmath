@@ -1,12 +1,12 @@
 [package]
 name = "ggmath"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-paste = "1.0.7"
-num = "0.4"
-image = "0.24.3"
-itertools = "0.10.3"
+pastey = "0.1.0"
+num = "0.4.3"
+image = "0.25.6"
+itertools = "0.14.0"

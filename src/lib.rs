@@ -2,7 +2,6 @@
 #![feature(generic_const_exprs)]
 #![feature(const_for)]
 #![feature(const_trait_impl)]
-#![feature(generic_arg_infer)]
 
 pub mod float_ext;
 pub mod fraction;

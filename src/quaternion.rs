@@ -70,9 +70,9 @@ impl<T: Float> Quaternion<T> {
     where
         T: Sum,
     {
-        Self::from_rotation_z(roll)
-            .and_then(&Self::from_rotation_x(pitch))
-            .and_then(&Self::from_rotation_y(yaw))
+        Quaternion::from_rotation_z(roll)
+            .and_then(&Quaternion::from_rotation_x(pitch))
+            .and_then(&Quaternion::from_rotation_y(yaw))
     }
 
     /// Create a quaternion representing a rotation around an axis.
