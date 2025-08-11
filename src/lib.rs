@@ -90,7 +90,8 @@ mod tests {
 
         #[test]
         fn axis_angle() {
-            let rotation = Quaternion::from_axis_angle(&Vector3::unit_x(), std::f64::consts::PI * 0.5);
+            let rotation =
+                Quaternion::from_axis_angle(&Vector3::unit_x(), std::f64::consts::PI * 0.5);
             let (axis, angle) = rotation.axis_angle();
             assert!((axis - Vector3::unit_x()).length() < 0.000001);
             assert!((angle - std::f64::consts::PI * 0.5).abs() < 0.000001);
@@ -215,7 +216,6 @@ mod tests {
     #[allow(dead_code)]
     mod other_tests {
         #[test]
-        fn tests() {
-        }
+        fn tests() {}
     }
 }

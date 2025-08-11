@@ -6,11 +6,10 @@ use std::{
     ops::{Add, AddAssign, Div, Index, IndexMut, Mul, Neg, Not, Rem, Sub},
 };
 
-use num::traits::{real::Real, Float, NumCast, One, ToPrimitive, Zero};
+use num::traits::{Float, NumCast, One, ToPrimitive, Zero, real::Real};
 
 use crate::{
-    float_ext::FloatExt, init_array, quaternion::Quaternion, vector,
-    vector_alias::Vector,
+    float_ext::FloatExt, init_array, quaternion::Quaternion, vector, vector_alias::Vector,
 };
 
 #[repr(C)]
@@ -178,11 +177,7 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
     }
 
     const fn __identity_init_fn2(column_idx: usize, row_idx: usize, zero: T, one: T) -> T {
-        if column_idx == row_idx {
-            one
-        } else {
-            zero
-        }
+        if column_idx == row_idx { one } else { zero }
     }
 
     /// Get an immutable pointer to the data inside of the matrix or vector
@@ -263,10 +258,14 @@ impl<T: Copy + Zero + One, const ROWS: usize, const COLUMNS: usize> Matrix<T, RO
         T: Sum + Mul<Output = T>,
     {
         if COLUMNS < OTHER_ROWS {
-            panic!("Matrix::and_then: left hand matrix must have equal or greater columns to the right hand matrix's rows");
+            panic!(
+                "Matrix::and_then: left hand matrix must have equal or greater columns to the right hand matrix's rows"
+            );
         }
         if COLUMNS != OTHER_COLUMNS {
-            panic!("Matrix::and_then: left hand matrix must have equal columns to the right hand matrix's columns");
+            panic!(
+                "Matrix::and_then: left hand matrix must have equal columns to the right hand matrix's columns"
+            );
         }
         Self {
             rows: init_array!([Row<T, COLUMNS>; ROWS], |row_idx| {
@@ -937,26 +936,22 @@ impl<T: Copy + Zero + One, const COLUMNS: usize> Vector<T, COLUMNS> {
 
     /// Get the X component of the vector
     pub const fn x(&self) -> T {
-        self.rows[0]
-            .data[0]
+        self.rows[0].data[0]
     }
 
     /// Get the Y component of the vector
     pub const fn y(&self) -> T {
-        self.rows[0]
-            .data[1]
+        self.rows[0].data[1]
     }
 
     /// Get the Z component of the vector
     pub const fn z(&self) -> T {
-        self.rows[0]
-            .data[2]
+        self.rows[0].data[2]
     }
 
     /// Get the W component of the vector
     pub const fn w(&self) -> T {
-        self.rows[0]
-            .data[3]
+        self.rows[0].data[3]
     }
 
     /// Concatenate two vectors
@@ -1550,12 +1545,12 @@ impl<T: Copy + Zero + One + Hash, const ROWS: usize, const COLUMNS: usize> Hash
 
 // Matrix * Matrix
 impl<
-        T: Copy + Zero + One,
-        const ROWS: usize,
-        const COLUMNS: usize,
-        const OTHER_ROWS: usize,
-        const OTHER_COLUMNS: usize,
-    > Mul<Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for Matrix<T, ROWS, COLUMNS>
+    T: Copy + Zero + One,
+    const ROWS: usize,
+    const COLUMNS: usize,
+    const OTHER_ROWS: usize,
+    const OTHER_COLUMNS: usize,
+> Mul<Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for Matrix<T, ROWS, COLUMNS>
 where
     T: Sum + Mul<Output = T>,
 {
@@ -1564,7 +1559,10 @@ where
         if ROWS == 1 && OTHER_ROWS == 1 {
             self.as_size(T::one()).zip(&rhs, |a, b| *a * *b)
         } else if OTHER_COLUMNS < ROWS {
-            panic!("Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}", ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS);
+            panic!(
+                "Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}",
+                ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS
+            );
         } else {
             rhs.and_then(&self)
         }
@@ -1572,12 +1570,12 @@ where
 }
 
 impl<
-        T: Copy + Zero + One,
-        const ROWS: usize,
-        const COLUMNS: usize,
-        const OTHER_ROWS: usize,
-        const OTHER_COLUMNS: usize,
-    > Mul<Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for &Matrix<T, ROWS, COLUMNS>
+    T: Copy + Zero + One,
+    const ROWS: usize,
+    const COLUMNS: usize,
+    const OTHER_ROWS: usize,
+    const OTHER_COLUMNS: usize,
+> Mul<Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for &Matrix<T, ROWS, COLUMNS>
 where
     T: Sum + Mul<Output = T>,
 {
@@ -1586,7 +1584,10 @@ where
         if ROWS == 1 && OTHER_ROWS == 1 {
             self.as_size(T::one()).zip(&rhs, |a, b| *a * *b)
         } else if OTHER_COLUMNS < ROWS {
-            panic!("Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}", ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS);
+            panic!(
+                "Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}",
+                ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS
+            );
         } else {
             rhs.and_then(&self)
         }
@@ -1594,12 +1595,12 @@ where
 }
 
 impl<
-        T: Copy + Zero + One,
-        const ROWS: usize,
-        const COLUMNS: usize,
-        const OTHER_ROWS: usize,
-        const OTHER_COLUMNS: usize,
-    > Mul<&Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for Matrix<T, ROWS, COLUMNS>
+    T: Copy + Zero + One,
+    const ROWS: usize,
+    const COLUMNS: usize,
+    const OTHER_ROWS: usize,
+    const OTHER_COLUMNS: usize,
+> Mul<&Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for Matrix<T, ROWS, COLUMNS>
 where
     T: Sum + Mul<Output = T>,
 {
@@ -1608,7 +1609,10 @@ where
         if ROWS == 1 && OTHER_ROWS == 1 {
             self.as_size(T::one()).zip(&rhs, |a, b| *a * *b)
         } else if OTHER_COLUMNS < ROWS {
-            panic!("Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}", ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS);
+            panic!(
+                "Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}",
+                ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS
+            );
         } else {
             rhs.and_then(&self)
         }
@@ -1616,12 +1620,12 @@ where
 }
 
 impl<
-        T: Copy + Zero + One,
-        const ROWS: usize,
-        const COLUMNS: usize,
-        const OTHER_ROWS: usize,
-        const OTHER_COLUMNS: usize,
-    > Mul<&Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for &Matrix<T, ROWS, COLUMNS>
+    T: Copy + Zero + One,
+    const ROWS: usize,
+    const COLUMNS: usize,
+    const OTHER_ROWS: usize,
+    const OTHER_COLUMNS: usize,
+> Mul<&Matrix<T, OTHER_ROWS, OTHER_COLUMNS>> for &Matrix<T, ROWS, COLUMNS>
 where
     T: Sum + Mul<Output = T>,
 {
@@ -1630,7 +1634,10 @@ where
         if ROWS == 1 && OTHER_ROWS == 1 {
             self.as_size(T::one()).zip(&rhs, |a, b| *a * *b)
         } else if OTHER_COLUMNS < ROWS {
-            panic!("Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}", ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS);
+            panic!(
+                "Matrix multiplication is not supported for matrices with dimensions {}x{} and {}x{}",
+                ROWS, COLUMNS, OTHER_ROWS, OTHER_COLUMNS
+            );
         } else {
             rhs.and_then(&self)
         }

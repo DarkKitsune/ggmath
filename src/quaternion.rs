@@ -101,7 +101,7 @@ impl<T: Float> Quaternion<T> {
             (Vector3::unit_x(), T::zero())
         }
     }
-    
+
     /// Calculate the length of the quaternion.
     pub fn length(&self) -> T
     where

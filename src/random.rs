@@ -176,6 +176,15 @@ impl<const COUNT: usize> FromRandom for [u8; COUNT] {
 pub trait ToSeed {
     /// Create a seed for a random number generator from this value.
     fn to_seed(&self) -> u64;
+
+    /// Create a number of seeds from this value.
+    fn to_seeds(&self, count: usize) -> Vec<u64> {
+        let self_seed = self.to_seed();
+        (0..count)
+            .map(|i| (self_seed, i as u64).to_seed())
+            .collect()
+    }
+
     /// Returns a random value of type `R` using `self` as a seed.
     /// A linear congruential generator is used to generate the random value.
     fn into_random<R: FromRandom>(self) -> R
