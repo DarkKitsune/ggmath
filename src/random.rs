@@ -180,7 +180,7 @@ pub trait ToSeed {
     /// Create a number of seeds from this value.
     fn to_seeds(&self, count: usize) -> Vec<u64> {
         let self_seed = self.to_seed();
-        (0..count)
+        (1..=count)
             .map(|i| (self_seed, i as u64).to_seed())
             .collect()
     }
